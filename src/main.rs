@@ -1,8 +1,6 @@
-use grade::read_source_config;
+use grade::{read_sources, read_source_config};
 
 fn main() {
-    match read_source_config(){
-        Ok(_) => println!("No problemo"),
-        Err(e) => println!("{e:?}"),
-    };
+    read_source_config().expect("error somewhere")
+    // read_sources()
 }

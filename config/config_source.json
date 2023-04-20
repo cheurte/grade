@@ -1,8 +1,28 @@
 {
-    "fileName": "BIOTEC.xlsx",
-    "sheetName": "Master - Flexible Overview",
-    "allowedChanges":[
-        "J5",
-        "J6"
+    "pdfFiles":[
+        {
+            "fileName": [
+                "BIOTEC.xlsx"
+            ],
+            "sheetName": [
+                "Master - Rigid Overview"
+            ],
+            "product":[
+                "BIOPLAST 800",
+                "BIOPLAST GS 2189",
+                "BIOPLAST 105"
+            ]
+        },
+        {
+            "fileName": [
+                "BIOTEC.xlsx"
+            ] ,
+            "sheetName": [
+                "Master - Flexible Overview"
+            ],
+            "product":[
+            ""
+            ]
+        }
     ]
 }

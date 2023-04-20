@@ -1,5 +1,5 @@
 use std::path::Path;
-use latex::{DocumentClass, Element, Document, Section, Align};
+use latex::{DocumentClass, Element, Document, Section, Align, print};
 use std::fs::File;
 use std::io::{Write, Read};
 
@@ -14,11 +14,18 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ConfigXlsx {
-    file_name: String,
-    sheet_name: String,
-    allowed_changes: Vec<String>,
+    pdf_file:Vec<PdfFile>, 
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PdfFile {
+   file_name: Vec<String>,
+   sheets_name: Vec<String>,
+   products: Vec<String>,
+}
+
+/// Read json content
 pub fn read_source_config()->std::io::Result<()>{
     let path = Path::new("config/config_source.json");
     let file = File::open(path)?;
@@ -94,13 +101,13 @@ fn create_pdf()->std::io::Result<()>{
 /// Function to read the content of the file. Not finished yet. 
 /// Suppose to depend on a json file to know wich line or row can be red.
 ///
-fn read_sources(){
-    let path = "sources/BIOTEC.xlsx";
+pub fn read_sources(){
+    let path = "sources/Book1.xlsx";
     let mut workbook: Xlsx<_> = open_workbook(path).expect("cannot open file");
-    
-    if let Some(Ok(range)) = workbook.worksheet_range("Master - Flexible Overview") {
-        // let total_cells = range.get_size().0 * range
-        println!("{:?}", range.get_size());
+    if let Some(Ok(range)) = workbook.worksheet_range("Sheet1") {
+        println!("{:?}",range.used_cells());
+
     }
+    
 }
 
