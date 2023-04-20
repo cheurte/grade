@@ -1,6 +1,6 @@
-use latex_creation;
+use grade;
 
 #[test]
 fn creating_string(){
-    assert_eq!("",latex_creation::create_tex_structure())
+    assert_eq!("",grade::create_tex_structure())
 }
