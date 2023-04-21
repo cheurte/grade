@@ -13,26 +13,25 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ConfigXlsx {
-    pdf_file:Vec<PdfFile>, 
+pub struct ConfigXlsx {
+    pub pdf_file: Vec<PdfFile>, 
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct PdfFile {
-   file_name: Vec<String>,
-   sheets_name: Vec<String>,
-   products: Vec<String>,
+pub struct PdfFile {
+    pdf_name: String,
+    sources: Vec<String>,
+    sheets_name: Vec<String>,
+    products: Vec<String>,
 }
 
 /// Read json content
-pub fn read_source_config()->std::io::Result<()>{
+pub fn read_config()->std::io::Result<ConfigXlsx>{
     let path = Path::new("config/config_source.json");
     let file = File::open(path)?;
-
-    let config:ConfigXlsx= serde_json::from_reader(file)?;
-    println!("{:?}", config);
-    Ok(())
+    let config: ConfigXlsx = serde_json::from_reader(file)?;
+    Ok(config)
 }
 
 /// Create the string that will be compiled. 
@@ -101,13 +100,20 @@ fn create_pdf()->std::io::Result<()>{
 /// Function to read the content of the file. Not finished yet. 
 /// Suppose to depend on a json file to know wich line or row can be red.
 ///
-pub fn read_sources(){
-    let path = "sources/Book1.xlsx";
+pub fn read_sources(config: &PdfFile){
+    let path = config.sources.iter().nth(0).unwrap();
+    let sheet = config.sheets_name.iter().nth(0).unwrap();
     let mut workbook: Xlsx<_> = open_workbook(path).expect("cannot open file");
-    if let Some(Ok(range)) = workbook.worksheet_range("Sheet1") {
-        println!("{:?}",range.used_cells());
 
+    if let Some(Ok(range)) = workbook.worksheet_range(&sheet) {
+        for row in 0..range.get_size().0{
+            for col in 0..range.get_size().1{
+                let value = range.get_value((row as u32, col as u32));
+                if value != Some(&DataType::Empty){
+                    println!("{:?}", value);
+                }
+            }
+        }
     }
-    
 }
 

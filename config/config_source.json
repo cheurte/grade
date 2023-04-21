@@ -1,26 +1,29 @@
 {
-    "pdfFiles":[
+    
+    "pdfFile":[
         {
-            "fileName": [
-                "BIOTEC.xlsx"
+            "pdfName":"pdf1",
+            "sources": [
+                "/home/cheurte/Documents/grade/sources/BIOTEC.xlsx"
             ],
-            "sheetName": [
+            "sheetsName": [
                 "Master - Rigid Overview"
             ],
-            "product":[
+            "products":[
                 "BIOPLAST 800",
                 "BIOPLAST GS 2189",
                 "BIOPLAST 105"
             ]
         },
         {
-            "fileName": [
-                "BIOTEC.xlsx"
+            "pdfName":"pdf2",
+            "sources": [
+                "/home/cheurte/Documents/grade/sources/BIOTEC.xlsx"
             ] ,
-            "sheetName": [
+            "sheetsName": [
                 "Master - Flexible Overview"
             ],
-            "product":[
+            "products":[
             ""
             ]
         }
