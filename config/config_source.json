@@ -7,12 +7,16 @@
                 "/home/cheurte/Documents/grade/sources/BIOTEC.xlsx"
             ],
             "sheetsName": [
-                "Master - Rigid Overview"
+                "Master - Rigid Overview "
             ],
             "products":[
                 "BIOPLAST 800",
                 "BIOPLAST GS 2189",
                 "BIOPLAST 105"
+            ],
+            "categories":[
+                "Product Texts",
+                "Properties"
             ]
         },
         {
@@ -25,7 +29,8 @@
             ],
             "products":[
             ""
-            ]
+            ],
+            "categories":[]
         }
     ]
 }
