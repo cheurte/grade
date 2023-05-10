@@ -9,5 +9,5 @@ edition = "2021"
 latexcompile = "0.1.0"
 latex = "0.3.1"
 calamine = "0.19.1"
-serde = {version="1.0.160", features = ["derive"]}
+serde = {version="1.0.162", features = ["derive"]}
 serde_json = "1.0.96"

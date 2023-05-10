@@ -10,5 +10,7 @@ Cargo.lock
 **/*.rs.bk
 
 *.xlsx
-*.tex
-*.pdf
+# *.tex
+# *.pdf
+/output/
+/sources/
