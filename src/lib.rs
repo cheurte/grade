@@ -1,4 +1,5 @@
-use latex::{print, Document, DocumentClass, Element, Section};
+use latex::{print, Document, DocumentClass, Element, PreambleElement};
+// use serde::de::value;
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
@@ -15,6 +16,9 @@ use serde::Deserialize;
 #[serde(rename_all = "camelCase")]
 pub struct ConfigXlsx {
     pub pdf_file: Vec<PdfFile>,
+    pub color_text: Vec<i32>,
+    pub color_tab_title: Vec<i32>,
+    pub color_tab_line: Vec<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -23,86 +27,159 @@ pub struct PdfFile {
     _pdf_name: String,
     sources: Vec<String>,
     sheets_name: Vec<String>,
-    pub products: Vec<String>,
+    products: Vec<String>,
     categories: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AlignTab {
     C,
     R,
     L,
 }
 
-#[derive(Debug)]
-pub struct TabularTex {
-    align: AlignTab,
-    nb_col: usize,
+fn define_column(nb_col: usize, align: AlignTab) -> String {
+    let mut column_definition: String = String::new();
+    let align = match align {
+        AlignTab::C => String::from("c"),
+        AlignTab::L => String::from("l"),
+        AlignTab::R => String::from("r"),
+    };
+    for _ in 0..nb_col {
+        column_definition.push_str(&format!("X {} ", align)[..]);
+    }
+    column_definition
 }
 
-impl TabularTex {
-    pub fn new() -> Self {
-        Self {
-            align: AlignTab::C,
-            nb_col: 0,
-        }
-    }
-    pub fn from(align: AlignTab, nb_col: usize) -> Self {
-        Self { align, nb_col }
-    }
-
-    pub fn define_column(self) -> String {
-        let mut column_definition: String = String::new();
-        let align = match self.align {
-            AlignTab::C => String::from("c"),
-            AlignTab::L => String::from("l"),
-            AlignTab::R => String::from("r"),
-        };
-        for _ in 0..self.nb_col {
-            column_definition.push_str(&format!("X {} ", align)[..]);
-        }
-        println!("{column_definition:?}");
-        column_definition
-    }
-
-    // fn create_tabularx(nb_col: usize) -> String {
-    //     // let tabular = String::from("\\begin{{tabularx}}{{\textwidth}}{}")
-    //     // let values = values.join(" & ");
-    //     // let
-    //     // let tabular = &format!(
-    //     //     "\\begin{{tabular}}{{{}}}\n\
-    //     //    {} \n\
-    //     //     \\end{{tabular}}",
-    //     //     columns, values
-    //     // );
-    //     // let tabular = String::from("");
-    //     // tabular.to_string()
-    //     String::new()
-    // }
+pub fn end_line_tab(line: &mut String) -> String {
+    line.push_str("\\\\");
+    line.to_string()
 }
 
-// pub fn begin_section_wo_param(name: String, content: String) -> String {
-//     let section = &format!(
-//         "\\begin{{{}}}\n\
-//             {}\
-//         \\end{{{}}}",
-//         name, content, name
-//     );
-//     section.to_string()
-// }
+pub fn create_title_tabularx(color: String, title: String) -> String {
+    let mut title = String::from(format!("\\rowcolor{{{}}}{}", color, title));
+    end_line_tab(&mut title)
+}
+
+/// Function to create the sub title
+/// missing the &
+pub fn create_sub_title_tabularx(sub_title: Vec<String>) -> String {
+    let mut buff_sub_title = String::new();
+    for (i, param) in sub_title.iter().enumerate() {
+        buff_sub_title.push_str(&format!(" \\textbf{{{}}} ", param));
+        if i != sub_title.len() - 1 {
+            buff_sub_title.push('&')
+        }
+    }
+    end_line_tab(&mut buff_sub_title)
+}
+
+/// Create the content of the tab and return it as the form of String.
+/// To add :
+///     - The line and the color of the line.
+///     - The & missing
+/// Much later, the posibility to put everything into two columns
+///
+pub fn create_content_tabularx(content: Vec<Vec<String>>) -> String {
+    let mut buff_sub_content = String::new();
+    for line in content.iter() {
+        buff_sub_content.push_str(&format!("{}", line.join("&")));
+        end_line_tab(&mut buff_sub_content);
+    }
+    buff_sub_content
+}
+
+pub fn create_tabularx() -> Element {
+    // let title: String = String:
+    let tab = Element::Environment(
+        String::from("tabularx"),
+        vec![
+            "{\\textwidth}".to_string(),
+            format!("{{{}}}", define_column(6, AlignTab::L)),
+            create_title_tabularx(String::from("color_title"), String::from("This is a title")),
+            create_sub_title_tabularx(vec![String::from("param 1"), String::from("param 2")]),
+            create_content_tabularx(vec![
+                vec![String::from("value 1"), String::from("Value 2")],
+                vec![String::from("value 1"), String::from("value 2")],
+            ]),
+        ],
+    );
+    tab
+}
 
 /// Create the string that will be compiled.
 /// This function will be depending on json files later. -> Todo
 ///
-pub fn page_blue_print() -> String {
-    let mut doc = Document::new(DocumentClass::Report);
+pub fn page_blue_print(config: ConfigXlsx) -> String {
+    let mut doc = Document::new(DocumentClass::Article);
+    doc.preamble.use_package("tabularx");
+    doc.preamble.use_package("xcolor");
+    doc.preamble.use_package("colortbl");
+    doc.preamble.use_package("geometry");
+    let margin: PreambleElement =
+        PreambleElement::UserDefined(String::from("\\geometry{margin=0.84in}"));
+    // let _t =
+
+    let def_color_title: PreambleElement = PreambleElement::UserDefined(String::from(&format!(
+        "\\definecolor{{color_title}}{{RGB}}{{{}}}",
+        config
+            .color_tab_title
+            .iter()
+            .enumerate()
+            .map(|(i, val)| {
+                if i != config.color_tab_title.len() - 1 {
+                    val.to_string() + ","
+                } else {
+                    val.to_string()
+                }
+            })
+            .collect::<String>()
+    )));
+    let def_color_line: PreambleElement = PreambleElement::UserDefined(String::from(&format!(
+        "\\definecolor{{line_color}}{{RGB}}{{{}}}",
+        config
+            .color_tab_line
+            .iter()
+            .enumerate()
+            .map(|(i, val)| {
+                if i != config.color_tab_line.len() - 1 {
+                    val.to_string() + ","
+                } else {
+                    val.to_string()
+                }
+            })
+            .collect::<String>()
+    )));
+    let def_color_font: PreambleElement = PreambleElement::UserDefined(String::from(&format!(
+        "\\definecolor{{font_color}}{{RGB}}{{{}}}",
+        config
+            .color_text
+            .iter()
+            .enumerate()
+            .map(|(i, val)| {
+                if i != config.color_text.len() - 1 {
+                    val.to_string() + ","
+                } else {
+                    val.to_string()
+                }
+            })
+            .collect::<String>()
+    )));
+    doc.preamble.author("corentin");
     doc.preamble.title("Template document");
-    doc.push(Element::TitlePage);
-    doc.push(Element::ClearPage);
-    // doc.push(
-    // &TabularTex::begin_section_wo_param("center".to_string(), "ceci est un test".to_string())
-    // [..],
-    // );
+    doc.preamble
+        .push(margin)
+        .push(def_color_title)
+        .push(def_color_font)
+        .push(def_color_line);
+
+    doc.push(Element::TitlePage).push(Element::ClearPage);
+
+    doc.push(create_tabularx());
+    // for tab in tabs.into_iter() {
+    //     doc.push(&begin_section_wo_param(String::from("center"), tab)[..]);
+    // }
+    // doc.push(&begin_section_wo_param("center".to_string())[..]);
 
     println!("{doc:?}");
 
@@ -112,7 +189,7 @@ pub fn page_blue_print() -> String {
 /// Handle the tex creation.
 /// Seperate function to handle the windows server lately -> ToDo
 ///
-pub fn create_tex_file(rendered: String) -> std::io::Result<()> {
+pub fn render_tex_file(rendered: String) -> std::io::Result<()> {
     let mut f = File::create("output/report.tex")?;
     write!(f, "{}", rendered)?;
     Ok(())
@@ -124,28 +201,33 @@ pub fn create_tex_file(rendered: String) -> std::io::Result<()> {
 ///
 /// Again, to be tested on a windows server -> Todo
 ///
-pub fn create_pdf() -> std::io::Result<()> {
-    // let mut dict = HashMap::new();
-    // dict.insert("test".into(), "Minimal".into());
-    // // provide the folder where the file for latex compiler are found
-    // let input = LatexInput::from("assets");
-    // // create a new clean compiler enviroment and the compiler wrapper
-    // let compiler = LatexCompiler::new(dict).unwrap();
-    // // run the underlying pdflatex or whatever
-    // let result = compiler.run("assets/test.tex", &input).unwrap();
-
-    // // copy the file into the working directory
-    // let output = ::std::env::current_dir()
-    //     .expect("problem with current dir ??")
-    //     .join("out.pdf");
-    //
-    // assert!(write(output, result).is_ok());
-    Ok(())
-}
+// pub fn create_pdf() -> std::io::Result<()> {
+//     // let mut dict = HashMap::new();
+//     // dict.insert("test".into(), "Minimal".into());
+//     // // provide the folder where the file for latex compiler are found
+//     // let input = LatexInput::from("assets");
+//     // // create a new clean compiler enviroment and the compiler wrapper
+//     // let compiler = LatexCompiler::new(dict).unwrap();
+//     // // run the underlying pdflatex or whatever
+//     // let result = compiler.run("assets/test.tex", &input).unwrap();
+//
+//     // // copy the file into the working directory
+//     // let output = ::std::env::current_dir()
+//     //     .expect("problem with current dir ??")
+//     //     .join("out.pdf");
+//     //
+//     // assert!(write(output, result).is_ok());
+//     Ok(())
+// }
 
 impl ConfigXlsx {
     pub fn new() -> Self {
-        Self { pdf_file: vec![] }
+        Self {
+            pdf_file: vec![],
+            color_text: vec![13, 64, 47],
+            color_tab_title: vec![237, 233, 230],
+            color_tab_line: vec![215, 212, 210],
+        }
     }
 
     pub fn from(path: &str) -> Self {

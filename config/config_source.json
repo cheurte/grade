@@ -1,5 +1,8 @@
 {
-    
+
+    "colorText":[13, 64, 47],
+    "colorTabTitle": [237, 233, 230],
+    "colorTabLine": [215, 212, 210],
     "pdfFile":[
         {
             "pdfName":"pdf1",

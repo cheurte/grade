@@ -1,10 +1,11 @@
 \documentclass{article}
 
 \usepackage{xcolor, colortbl}
-\usepackage{arydshln}
-\usepackage[margin=0.84in]{geometry}
+% \usepackage{arydshln}
+\usepackage{geometry}
 \usepackage{graphicx}
 \usepackage{tabularx}
+\geometry{margin=0.84in}
 % Deleting page number
 \pagenumbering{gobble}
 % police
@@ -37,9 +38,8 @@
 % ------------------------------------------------
 
 \includegraphics[scale=0.20]{biotec}
-
 \begin{center}
-	\footnotesize{
+	% \footnotesize{
 		\begin{tabularx}{\textwidth}{ X l X l X l X l X l X l }
 			\rowcolor{LightCyan} Properties &                       &               &                      &   & \\
 			\textbf{Parameter}              & \textbf{target Value} & \textbf{Unit} & \textbf{Test method}       \\
@@ -49,14 +49,14 @@
 			Moisture content                & <0.15                 & [eight \%]    &                      &     \\
 			\arrayrulecolor{line_color}\hline
 		\end{tabularx}
-	}
+	% }
 \end{center}
 % -------------------------------------------------------------------
 % Second tab
 % -------------------------------------------------------------------
 
 \begin{center}
-	\footnotesize{
+	% \footnotesize{
 		\begin{tabularx}{\textwidth}{ X l X l X l X l X l X l }
 			\rowcolor{LightCyan} Mechanical Properties &                       &               &                    &                       &               \\
 			\textbf{Parameter}                         & \textbf{target Value} & \textbf{Unit} & \textbf{Parameter} & \textbf{target Value} & \textbf{Unit} \\
@@ -88,7 +88,7 @@
 			Strain at break                            & 2                     & [\%]          & Oblique tear       & 0                     & [\%]          \\
 			\arrayrulecolor{line_color}\hline
 		\end{tabularx}
-	}
+	% }
 \end{center}
 
 \vspace*{\fill}
