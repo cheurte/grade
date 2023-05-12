@@ -4,10 +4,6 @@ use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
 
-// use latexcompile::{LatexCompiler, LatexInput};
-// use std::collections::HashMap;
-// use std::fs::write;
-
 use calamine::{open_workbook, DataType, Reader, Xlsx};
 
 use serde::Deserialize;
@@ -33,9 +29,9 @@ pub struct PdfFile {
 
 #[derive(Debug, Clone)]
 pub enum AlignTab {
-    C,
-    R,
-    L,
+    C, // Center align
+    R, // Right align
+    L, // left align
 }
 
 fn define_column(nb_col: usize, align: AlignTab) -> String {
@@ -52,18 +48,24 @@ fn define_column(nb_col: usize, align: AlignTab) -> String {
 }
 
 pub fn end_line_tab(line: &mut String) -> String {
-    line.push_str("\\\\");
+    line.push_str(" \\\\\n");
     line.to_string()
 }
 
-pub fn create_title_tabularx(color: String, title: String) -> String {
-    let mut title = String::from(format!("\\rowcolor{{{}}}{}", color, title));
+pub fn add_empty_rows(content: &mut String, nb_rows2add: usize) -> String {
+    content.push_str(&" & ".to_string().repeat(nb_rows2add));
+    content.to_string()
+}
+
+pub fn create_title_tabularx(title: String, nb_col: usize) -> String {
+    let mut title = String::from(format!("\\rowcolor{{color_title}}{}", title));
+    add_empty_rows(&mut title, nb_col - 1);
     end_line_tab(&mut title)
 }
 
 /// Function to create the sub title
 /// missing the &
-pub fn create_sub_title_tabularx(sub_title: Vec<String>) -> String {
+pub fn create_sub_title_tabularx(sub_title: Vec<String>, nb_col: usize) -> String {
     let mut buff_sub_title = String::new();
     for (i, param) in sub_title.iter().enumerate() {
         buff_sub_title.push_str(&format!(" \\textbf{{{}}} ", param));
@@ -71,37 +73,58 @@ pub fn create_sub_title_tabularx(sub_title: Vec<String>) -> String {
             buff_sub_title.push('&')
         }
     }
+    add_empty_rows(&mut buff_sub_title, nb_col - sub_title.len());
     end_line_tab(&mut buff_sub_title)
 }
 
 /// Create the content of the tab and return it as the form of String.
 /// To add :
-///     - The line and the color of the line.
-///     - The & missing
-/// Much later, the posibility to put everything into two columns
+/// The posibility to put everything into two columns
 ///
-pub fn create_content_tabularx(content: Vec<Vec<String>>) -> String {
+pub fn create_content_tabularx(content: Vec<Vec<String>>, nb_col: usize) -> String {
     let mut buff_sub_content = String::new();
     for line in content.iter() {
-        buff_sub_content.push_str(&format!("{}", line.join("&")));
+        buff_sub_content.push_str(&format!("{}", line.join(" & ")));
+        add_empty_rows(&mut buff_sub_content, nb_col - line.len());
+        end_line_tab(&mut buff_sub_content);
+        buff_sub_content.push_str(&format!("\\arrayrulecolor{{line_color}}\\hline"));
         end_line_tab(&mut buff_sub_content);
     }
     buff_sub_content
 }
 
-pub fn create_tabularx() -> Element {
+pub fn create_tabularx(
+    nb_col: usize,
+    title: &String,
+    sub_title: &Vec<String>,
+    content: &Vec<Vec<String>>,
+) -> Element {
     // let title: String = String:
     let tab = Element::Environment(
         String::from("tabularx"),
         vec![
             "{\\textwidth}".to_string(),
-            format!("{{{}}}", define_column(6, AlignTab::L)),
-            create_title_tabularx(String::from("color_title"), String::from("This is a title")),
-            create_sub_title_tabularx(vec![String::from("param 1"), String::from("param 2")]),
-            create_content_tabularx(vec![
-                vec![String::from("value 1"), String::from("Value 2")],
-                vec![String::from("value 1"), String::from("value 2")],
-            ]),
+            format!("{{{}}}", define_column(nb_col, AlignTab::L)),
+            create_title_tabularx(String::from("This is a title"), nb_col),
+            create_sub_title_tabularx(
+                vec![
+                    String::from("param 1"),
+                    String::from("param 2"),
+                    String::from("Param 3"),
+                ],
+                nb_col,
+            ),
+            create_content_tabularx(
+                vec![
+                    vec![
+                        String::from("value 1"),
+                        String::from("Value 2"),
+                        String::from("Value 3"),
+                    ],
+                    vec![String::from("value 1"), String::from("value 2")],
+                ],
+                nb_col,
+            ),
         ],
     );
     tab
@@ -110,7 +133,12 @@ pub fn create_tabularx() -> Element {
 /// Create the string that will be compiled.
 /// This function will be depending on json files later. -> Todo
 ///
-pub fn page_blue_print(config: ConfigXlsx) -> String {
+pub fn page_blue_print(
+    config: ConfigXlsx,
+    title: Vec<String>,
+    sub_title: Vec<Vec<String>>,
+    content: Vec<Vec<Vec<String>>>,
+) -> String {
     let mut doc = Document::new(DocumentClass::Article);
     doc.preamble.use_package("tabularx");
     doc.preamble.use_package("xcolor");
@@ -118,7 +146,6 @@ pub fn page_blue_print(config: ConfigXlsx) -> String {
     doc.preamble.use_package("geometry");
     let margin: PreambleElement =
         PreambleElement::UserDefined(String::from("\\geometry{margin=0.84in}"));
-    // let _t =
 
     let def_color_title: PreambleElement = PreambleElement::UserDefined(String::from(&format!(
         "\\definecolor{{color_title}}{{RGB}}{{{}}}",
@@ -175,7 +202,11 @@ pub fn page_blue_print(config: ConfigXlsx) -> String {
 
     doc.push(Element::TitlePage).push(Element::ClearPage);
 
-    doc.push(create_tabularx());
+    for id_teb in 0..title.len() {
+        let = title.iter().next().unwrap();
+        // let tab = create_tabularx(6, a, &sub_title, &content);
+        // doc.push(create_tabularx(6, title.iter().next(), sub_title, content));
+    }
     // for tab in tabs.into_iter() {
     //     doc.push(&begin_section_wo_param(String::from("center"), tab)[..]);
     // }
@@ -194,31 +225,6 @@ pub fn render_tex_file(rendered: String) -> std::io::Result<()> {
     write!(f, "{}", rendered)?;
     Ok(())
 }
-
-/// Create the pdf file by creating a clean environment and executing the
-/// compiler in the assets directory. Tested only on linux distribution yet
-/// with latexmk compiler.
-///
-/// Again, to be tested on a windows server -> Todo
-///
-// pub fn create_pdf() -> std::io::Result<()> {
-//     // let mut dict = HashMap::new();
-//     // dict.insert("test".into(), "Minimal".into());
-//     // // provide the folder where the file for latex compiler are found
-//     // let input = LatexInput::from("assets");
-//     // // create a new clean compiler enviroment and the compiler wrapper
-//     // let compiler = LatexCompiler::new(dict).unwrap();
-//     // // run the underlying pdflatex or whatever
-//     // let result = compiler.run("assets/test.tex", &input).unwrap();
-//
-//     // // copy the file into the working directory
-//     // let output = ::std::env::current_dir()
-//     //     .expect("problem with current dir ??")
-//     //     .join("out.pdf");
-//     //
-//     // assert!(write(output, result).is_ok());
-//     Ok(())
-// }
 
 impl ConfigXlsx {
     pub fn new() -> Self {
@@ -253,7 +259,7 @@ impl PdfFile {
         )
     }
     /// Function to search the key elements of the file.
-    /// Suppose to depend on a json file to know wich line or row can be reed.
+    /// Suppose to depend on a json file to know wich line or row can be read.
     pub fn get_prod_categ_coordinates(&self) -> (Vec<(usize, usize)>, Vec<(usize, usize)>) {
         // To be changed to handle errors
         let mut workbook = self.get_workbook(0);
@@ -317,8 +323,28 @@ impl PdfFile {
         }
         end_categories
     }
-    /// Get parameters names
-    /// Take the indices of values to get them.
+
+    /// Return the tab titles
+    pub fn get_title_names(&self, begin_categories: &Vec<(usize, usize)>) -> Vec<String> {
+        let mut workbook = self.get_workbook(0);
+        let mut output: Vec<String> = vec![];
+
+        match workbook.worksheet_range(self.get_worksheet(0)) {
+            Some(Ok(range)) => {
+                for category in begin_categories {
+                    let (a, b) = category;
+                    // println!("{:?}", range.get_value((*a as u32, *b as u32)));
+                    output.push(range.get_value((*a as u32, *b as u32)).unwrap().to_string())
+                }
+            }
+            Some(Err(e)) => println!("{e:?}"),
+            None => println!("Sheets name unknown. Maybe check the name in the config file"),
+        }
+        output
+    }
+
+    // Get parameters names
+    // Take the indices of values to get them.
     pub fn get_parameters_name(
         &self,
         start_categ_coord: &Vec<(usize, usize)>,
@@ -375,7 +401,6 @@ impl PdfFile {
             Some(Err(e)) => println!("{e:?}"),
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
-        // return vec![vec![]];
         out
     }
 }
