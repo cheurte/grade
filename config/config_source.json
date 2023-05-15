@@ -3,6 +3,7 @@
     "colorText":[13, 64, 47],
     "colorTabTitle": [237, 233, 230],
     "colorTabLine": [215, 212, 210],
+
     "pdfFile":[
         {
             "pdfName":"pdf1",
@@ -18,8 +19,16 @@
                 "BIOPLAST 105"
             ],
             "categories":[
-                "Product Texts",
-                "Properties"
+                "Properties",
+                "Mechanical Properties",
+                "Compostable Certification"
+            ],
+            "parameters":[
+                "Parameters",
+                "Certification",
+                "Unit",
+                "Descriptions",
+                "Standart"
             ]
         },
         {
@@ -33,7 +42,8 @@
             "products":[
             ""
             ],
-            "categories":[]
+            "categories":[],
+            "parameters":[]
         }
     ]
 }

@@ -1,45 +1,69 @@
-// use grade::{create_pdf, create_tex_file, page_blue_print};
-use grade::{page_blue_print, render_tex_file};
+use grade::{page_blue_print, render_tex_file, starting_pdf};
 
-use grade::ConfigXlsx;
+use grade::{ConfigXlsx, TabParameters};
+use latex::{print, Document};
 
 // use std::process::Command;
 
 fn main() {
     let configs = ConfigXlsx::from("config/config_source.json");
 
+    // Iteration over pdf files
+    // only one for now & for testing
     for pdf_file in configs.pdf_file.iter() {
-        let (begin_categories, prod_coords): (Vec<(usize, usize)>, Vec<(usize, usize)>) =
-            pdf_file.get_prod_categ_coordinates();
-        // println!("{begin_categories:?}, {prod_coords:?}");
-        let end_categories = pdf_file.get_parameters_range(&begin_categories);
+        let begin_categories_coord: Vec<(usize, usize)> =
+            pdf_file.search_cells_coordinates(TabParameters::Category);
+        let parameters_coord: Vec<(usize, usize)> =
+            pdf_file.search_cells_coordinates(TabParameters::Parameter);
+        let products_coord: Vec<(usize, usize)> =
+            pdf_file.search_cells_coordinates(TabParameters::Product);
+        //
+        let end_categories_coord = pdf_file.get_parameters_range(&begin_categories_coord);
+        let titles = pdf_file.get_title_names(&begin_categories_coord);
 
-        let _titles = pdf_file.get_title_names(&begin_categories);
-        let _params = pdf_file.get_parameters_name(&begin_categories, &end_categories);
+        let t: Vec<usize> = parameters_coord.iter().map(|v| v.0).collect();
+        let parameters =
+            pdf_file.get_parameters_by_id(&begin_categories_coord, &end_categories_coord, t);
 
-        let mut content: Vec<Vec<Vec<String>>> = Vec::new();
+        let mut values: Vec<Vec<Vec<String>>> = Vec::new();
 
-        for (_, prod_coord) in prod_coords.iter().enumerate() {
+        // finding the actual content
+        for (_, prod_coord) in products_coord.iter().enumerate() {
             let cont_buff = pdf_file.get_values_from_parameters(
                 *prod_coord,
-                &begin_categories,
-                &end_categories,
+                &begin_categories_coord,
+                &end_categories_coord,
             );
-            content.push(cont_buff.clone());
+            values.push(cont_buff.clone());
         }
 
-        let content = page_blue_print(configs, _titles, _params, content);
-        println!("{content:?}");
-        match render_tex_file(content) {
-            Ok(_) => println!("ok"),
-            Err(e) => println!("{e:?}"),
+        let mut page = Document::new(latex::DocumentClass::Article);
+        starting_pdf(&mut page, &configs);
+
+        // Page creation
+        // We iterate over the PRODUCT
+        for _ in 0..values.len() {
+            let content = values.iter().next().unwrap();
+            page_blue_print(
+                &mut page,
+                &titles,
+                &parameters,
+                content,
+                parameters_coord.len(),
+            );
+            break;
         }
-        let exit_status = std::process::Command::new("latexmk")
-            .arg("output/report.tex")
-            .arg("--output-directory=output/")
-            .status()
-            .unwrap();
-        assert!(exit_status.success());
+        let render = print(&page).unwrap();
+        // match render_tex_file(render) {
+        //     Ok(_) => println!("rendered completed"),
+        //     Err(e) => println!("{e:?}"),
+        // }
+        // let exit_status = std::process::Command::new("latexmk")
+        //     .arg("output/report.tex")
+        //     .arg("--output-directory=output/")
+        //     .status()
+        //     .unwrap();
+        // assert!(exit_status.success());
         break;
     }
 }
