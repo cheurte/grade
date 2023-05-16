@@ -5,7 +5,10 @@
 \usepackage{geometry}
 \usepackage{graphicx}
 \usepackage{tabularx}
+\usepackage{paracol}
+\usepackage{multicol}
 \geometry{margin=0.84in}
+\columnratio{0.5}
 % Deleting page number
 \pagenumbering{gobble}
 % police
@@ -17,7 +20,7 @@
 \definecolor{Dark_green}{RGB}{ 13, 64, 47 }
 \definecolor{line_color}{RGB}{ 215, 212, 210}
 \renewcommand{\arraystretch}{1.5}
-
+\
 \graphicspath{{./resources/}}
 
 \color{Dark_green}
@@ -39,57 +42,108 @@
 
 \includegraphics[scale=0.20]{biotec}
 \begin{center}
-	% \footnotesize{
-		\begin{tabularx}{\textwidth}{ X l X l X l X l X l X l }
-			\rowcolor{LightCyan} Properties &                       &               &                      &   & \\
-			\textbf{Parameter}              & \textbf{target Value} & \textbf{Unit} & \textbf{Test method}       \\
+
+	\begin{tabularx}{\textwidth}{ X l X l X l}
+		\rowcolor{LightCyan} Properties &  & \\
+	\end{tabularx}
+	\begin{paracol}{2}
+
+		\begin{tabularx}{0.5\textwidth}{ X l l l}
+			\textbf{Parameter}                         & \textbf{target Value}& \textbf{Unit} &\\
 			\arrayrulecolor{line_color}\hline
-			Material Density                & 1.62                  & [g/cm3]       & EN ISO 1183          &   & \\
+			Charpy impact strength average             & 2                    & [kJ/m2]       &\\
 			\arrayrulecolor{line_color}\hline
-			Moisture content                & <0.15                 & [eight \%]    &                      &     \\
+			Flexural modulus                           & 7441                 & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural stress at break                   & 76                   & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural strain at break                   & 2                    & [\%]          &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural stress at conventional deflection & 6                    & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural strength                          & 77                   & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural strain at flexural strength       & 2                    & [\%]          &\\
+			\arrayrulecolor{line_color}\hline
+			Tensile modulus                            & 6271                 & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Stress at yield                            & n/a                  & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Strain at yield                            & n/a                  & [\%]          &\\
+			\arrayrulecolor{line_color}\hline
+			Stress at break                            & 47                   & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Nominal strain at break                    & n/a                  & [\%]          &\\
+			\arrayrulecolor{line_color}\hline
+			Strain at break                            & 2                    & [\%]          &\\
 			\arrayrulecolor{line_color}\hline
 		\end{tabularx}
-	% }
+		\switchcolumn
+		\begin{tabularx}{0.5\textwidth}{ X l l l l }
+			\textbf{Parameter}                         & \textbf{target Value}& \textbf{Unit} &\\
+			\arrayrulecolor{line_color}\hline
+			Charpy impact strength average             & 2                    & [kJ/m2]       &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural modulus                           & 7441                 & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural stress at break                   & 76                   & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural strain at break                   & 2                    & [\%]          &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural stress at conventional deflection & 6                    & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural strength                          & 77                   & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Flexural strain at flexural strength       & 2                    & [\%]          &\\
+			\arrayrulecolor{line_color}\hline
+			Tensile modulus                            & 6271                 & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Stress at yield                            & n/a                  & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Strain at yield                            & n/a                  & [\%]          &\\
+			\arrayrulecolor{line_color}\hline
+			Stress at break                            & 47                   & [MPa]         &\\
+			\arrayrulecolor{line_color}\hline
+			Nominal strain at break                    & n/a                  & [\%]          &\\
+			\arrayrulecolor{line_color}\hline
+			Strain at break                            & 2                    & [\%]          &\\
+			\arrayrulecolor{line_color}\hline
+		\end{tabularx}
+	\end{paracol}
 \end{center}
+
 % -------------------------------------------------------------------
 % Second tab
 % -------------------------------------------------------------------
 
-\begin{center}
-	% \footnotesize{
-		\begin{tabularx}{\textwidth}{ X l X l X l X l X l X l }
-			\rowcolor{LightCyan} Mechanical Properties &                       &               &                    &                       &               \\
-			\textbf{Parameter}                         & \textbf{target Value} & \textbf{Unit} & \textbf{Parameter} & \textbf{target Value} & \textbf{Unit} \\
-			\arrayrulecolor{line_color}\hline
-			Charpy impact strength average             & 2                     & [kJ/m2]       & Strain at strength & 2                     & [\%]          \\
-			\arrayrulecolor{line_color}\hline
-			Flexural modulus                           & 7441                  & [MPa]         & Thickness          & 245                   & [m]           \\
-			\arrayrulecolor{line_color}\hline
-			Flexural stress at break                   & 76                    & [MPa]         & Tear resistance    & 1501                  & [mN]          \\
-			\arrayrulecolor{line_color}\hline
-			Flexural strain at break                   & 2                     & [\%]          & Tear resistance    & 153                   & [g]           \\
-			\arrayrulecolor{line_color}\hline
-			Flexural stress at conventional deflection & 6                     & [MPa]         & Tear resistance    & 1                     & [g/m]         \\
-			\arrayrulecolor{line_color}\hline
-			Flexural strength                          & 77                    & [MPa]         & Tear resistance    & 6                     & [kJ/m2]       \\
-			\arrayrulecolor{line_color}\hline
-			Flexural strain at flexural strength       & 2                     & [\%]          & Oblique tear       & 0                     & [\%]          \\
-			\arrayrulecolor{line_color}\hline
-			Tensile modulus                            & 6271                  & [MPa]         & Thickness          & 245                   & [m]           \\
-			\arrayrulecolor{line_color}\hline
-			Stress at yield                            & n/a                   & [MPa]         & Tear resistance    & 1610                  & [mN]          \\
-			\arrayrulecolor{line_color}\hline
-			Strain at yield                            & n/a                   & [\%]          & Tear resistance    & 164                   & [g]           \\
-			\arrayrulecolor{line_color}\hline
-			Stress at break                            & 47                    & [MPa]         & Tear resistance    & 1                     & [g/m]         \\
-			\arrayrulecolor{line_color}\hline
-			Nominal strain at break                    & n/a                   & [\%]          & Tear resistance    & 7                     & [kJ/m2]       \\
-			\arrayrulecolor{line_color}\hline
-			Strain at break                            & 2                     & [\%]          & Oblique tear       & 0                     & [\%]          \\
-			\arrayrulecolor{line_color}\hline
-		\end{tabularx}
-	% }
-\end{center}
+% \textbf{Parameter}                         & \textbf{target Value} & \textbf{Unit} & \textbf{Parameter} & \textbf{target Value} & \textbf{Unit} \\
+% \arrayrulecolor{line_color}\hline
+% Charpy impact strength average             & 2                     & [kJ/m2]       & Strain at strength & 2                     & [\%]          \\
+% \arrayrulecolor{line_color}\hline
+% Flexural modulus                           & 7441                  & [MPa]         & Thickness          & 245                   & [m]           \\
+% \arrayrulecolor{line_color}\hline
+% Flexural stress at break                   & 76                    & [MPa]         & Tear resistance    & 1501                  & [mN]          \\
+% \arrayrulecolor{line_color}\hline
+% Flexural strain at break                   & 2                     & [\%]          & Tear resistance    & 153                   & [g]           \\
+% \arrayrulecolor{line_color}\hline
+% Flexural stress at conventional deflection & 6                     & [MPa]         & Tear resistance    & 1                     & [g/m]         \\
+% \arrayrulecolor{line_color}\hline
+% Flexural strength                          & 77                    & [MPa]         & Tear resistance    & 6                     & [kJ/m2]       \\
+% \arrayrulecolor{line_color}\hline
+% Flexural strain at flexural strength       & 2                     & [\%]          & Oblique tear       & 0                     & [\%]          \\
+% \arrayrulecolor{line_color}\hline
+% Tensile modulus                            & 6271                  & [MPa]         & Thickness          & 245                   & [m]           \\
+% \arrayrulecolor{line_color}\hline
+% Stress at yield                            & n/a                   & [MPa]         & Tear resistance    & 1610                  & [mN]          \\
+% \arrayrulecolor{line_color}\hline
+% Strain at yield                            & n/a                   & [\%]          & Tear resistance    & 164                   & [g]           \\
+% \arrayrulecolor{line_color}\hline
+% Stress at break                            & 47                    & [MPa]         & Tear resistance    & 1                     & [g/m]         \\
+% \arrayrulecolor{line_color}\hline
+% Nominal strain at break                    & n/a                   & [\%]          & Tear resistance    & 7                     & [kJ/m2]       \\
+% \arrayrulecolor{line_color}\hline
+% Strain at break                            & 2                     & [\%]          & Oblique tear       & 0                     & [\%]          \\
+% \arrayrulecolor{line_color}\hline
 
 \vspace*{\fill}
 \footnotesize{

@@ -1,4 +1,4 @@
-use latex::{Document, Element, PreambleElement};
+use latex::{print, Document, Element, PreambleElement};
 // use serde::__private::ser::constrain;
 // use serde::de::value;
 use std::fs::File;
@@ -51,8 +51,9 @@ fn define_column(nb_col: usize, align: AlignTab) -> String {
         AlignTab::L => String::from("l"),
         AlignTab::R => String::from("r"),
     };
-    for _ in 0..nb_col {
-        column_definition.push_str(&format!("X {} ", align)[..]);
+    column_definition.push('X');
+    for _ in 0..nb_col - 1 {
+        column_definition.push_str(&format!(" {} ", align)[..]);
     }
     column_definition
 }
@@ -73,90 +74,192 @@ pub fn create_title_tabularx(title: String, nb_col: usize) -> String {
     end_line_tab(&mut title)
 }
 
-// /// Function to create the sub title
-// /// missing the &
-// pub fn create_sub_title_tabularx(sub_title: Vec<String>, nb_col: usize) -> String {
-//     let mut buff_sub_title = String::new();
-//     for (i, param) in sub_title.iter().enumerate() {
-//         buff_sub_title.push_str(&format!(" \\textbf{{{}}} ", param));
-//         if i != sub_title.len() - 1 {
-//             buff_sub_title.push('&')
-//         }
-//     }
-//     add_empty_rows(&mut buff_sub_title, nb_col - sub_title.len());
-//     end_line_tab(&mut buff_sub_title)
-// }
-//
-// /// Create the content of the tab and return it as the form of String.
-// /// To add :
-// /// The posibility to put everything into two columns
-// ///
-// pub fn create_content_tabularx(content: Vec<Vec<String>>, nb_col: usize) -> String {
-//     let mut buff_sub_content = String::new();
-//     for line in content.iter() {
-//         buff_sub_content.push_str(&format!("{}", line.join(" & ")));
-//         add_empty_rows(&mut buff_sub_content, nb_col - line.len());
-//         end_line_tab(&mut buff_sub_content);
-//         buff_sub_content.push_str(&format!("\\arrayrulecolor{{line_color}}\\hline"));
-//         end_line_tab(&mut buff_sub_content);
-//     }
-//
-//     buff_sub_content
-// }
-fn create_content(parameters: &Vec<String>, _content: &Vec<String>, nb_param: usize) -> String {
-    // println!("{:?}", parameters[1..4].to_owned());
-    // let reshaped_param: Vec<Vec<String>> = Vec::new();
-    // println!("{}", parameters.len() / nb_param);
-    // println!("{}", parameters.len() / nb_param);
-    for i in 0..parameters.len() / nb_param {
-        println!("ok : {}", i * nb_param);
-        // reshaped_param.push(parameters[i*])
-    }
-    // let mut output: String = String::new();
-    // let mut j = 0;
-    // for (i, param) in parameters.iter().enumerate() {
-    //     let content_val = content.iter().nth(j as usize).unwrap();
-    //     match i % nb_param {
-    //         0 => {
-    //             println!("0");
-    //             if i != 0 {
-    //                 j += 1;
-    //             }
-    //             output.push_str(param);
-    //         }
-    //         1 => {
-    //             println!("1");
-    //             output.push_str(content_val);
-    //         }
-    //         _ => {
-    //             println!("autre");
-    //             output.push_str(param);
-    //         }
-    //     }
-    //     output.push(' ');
-    // }
-    // println!("{output:?}");
-    String::new()
+fn add_colored_line() -> String {
+    String::from(
+        "\\arrayrulecolor{line_color}\\hline
+",
+    )
 }
+
+/// reshape a 1D vector of string into a 2D vector
+/// vec!["a1", "a2", "a3", "b1", "b2", "b3"]
+///     -> vec![vec!["a1", "a2", "a3"], vec!["b1", "b2", "b3"]]
+fn reshape_vector_by_col(single_shape_vec: Vec<String>, nb_param: usize) -> Vec<Vec<String>> {
+    let mut reshaped_param: Vec<Vec<String>> = Vec::new();
+    for i in 0..(single_shape_vec.len() / (single_shape_vec.len() / nb_param)) {
+        let mut buff_vec: Vec<String> = Vec::new();
+        for j in (i..single_shape_vec.len()).step_by(nb_param) {
+            buff_vec.push(single_shape_vec.iter().nth(j).unwrap().to_string());
+        }
+        reshaped_param.push(buff_vec);
+    }
+    reshaped_param
+}
+
+/// Transpose a 2D vec of String
+/// vec![vec!["a1", "a2", "a3"],vec!["b1", "b2", "b3"]]
+///     -> vec![["a1", "b1"], vec!["a2", "b2"], vec!["a3", "b3"]]
+fn transpose2dvec(col_vec: Vec<Vec<String>>) -> Vec<Vec<String>> {
+    let size_col = col_vec.len();
+    let size_row = col_vec.first().expect("error, no values are here").len();
+    // let test = &col_vec[..];
+    let mut output: Vec<Vec<String>> = Vec::new();
+    for i in 0..size_row {
+        let mut buff_vec: Vec<String> = Vec::new();
+        for j in 0..size_col {
+            buff_vec.push(col_vec[..][j][i].to_string());
+        }
+        if buff_vec.iter().nth(1) != Some(&String::from("")) {
+            output.push(buff_vec);
+        }
+    }
+    output
+}
+
+/// Function to clean a 2D vector of String all values of one of the vector are
+/// equal to ""
+/// # Exampes
+/// vec![vec!["a","b","c"],vec!["", "", ""], vec!["d", "e", "f"]]
+///     -> vec![vec!["a","b","c"], vec!["d", "e", "f"]]
+fn clean_vector(double_shape_vec: Vec<Vec<String>>) -> (Vec<Vec<String>>, Vec<usize>) {
+    let mut resized_vec: Vec<Vec<String>> = Vec::new();
+    let mut useless_col: Vec<usize> = Vec::new();
+    for (i, arr) in double_shape_vec.iter().enumerate() {
+        if arr.iter().all(|f| f != "") {
+            resized_vec.push(arr.to_vec());
+        } else {
+            useless_col.push(i);
+        }
+    }
+    (resized_vec, useless_col)
+}
+
+fn clean_content(
+    parameters: &Vec<String>,
+    content: &Vec<String>,
+    nb_param: usize,
+) -> (Vec<Vec<String>>, Vec<usize>) {
+    assert_eq!(parameters.len() % nb_param, 0);
+    // Cleaning and re organizing the data
+    let parameters = reshape_vector_by_col(parameters.to_vec(), nb_param);
+    let (mut clean_param, useless_col) = clean_vector(parameters);
+    clean_param.insert(1, content.to_vec());
+    (transpose2dvec(clean_param), useless_col)
+}
+/// Function to create the content of the tab
+/// Must take a clean content to properly work
+fn create_content(clean_content: Vec<Vec<String>>, nb_col: usize) -> String {
+    let mut content: String = String::new();
+    for line in clean_content.iter() {
+        content.push_str(&line.join(" & "));
+        add_empty_rows(&mut content, nb_col - line.len());
+        end_line_tab(&mut content);
+        content.push_str(&add_colored_line());
+    }
+    content = content.replace("%", "\\%");
+    content = content.replace("μ", "micro");
+    content
+}
+fn create_parameters_tabularx(
+    parameters: &mut Vec<String>,
+    useless_col: &Vec<usize>,
+    nb_col: usize,
+) -> String {
+    parameters
+        .iter_mut()
+        .for_each(|f| *f = format!("\\textbf{{{}}}", f));
+    let mut j = 0;
+    for i in useless_col.iter() {
+        parameters.remove(*i - j);
+        j += 1;
+    }
+
+    parameters.insert(1, String::from("\\textbf{Target Value}"));
+    let param_size = parameters.len();
+    let mut parameters = parameters.join(" & ");
+    add_empty_rows(&mut parameters, nb_col - param_size);
+    end_line_tab(&mut parameters);
+    parameters
+}
+
+fn define_environment(name: String, parameters: String, content: String) -> String {
+    if parameters.is_empty() {
+        return format!("\\begin{{{name}}}\n{content}\n\\end{{{name}}}");
+    } else {
+        return format!("\\begin{{{name}}}{{{parameters}}}\n{content}\n\\end{{{name}}}");
+    }
+}
+
+/// Function that reunite all the tabular creation functions
+/// add to the page one centered tabular
 fn create_tabularx(
     page: &mut Document,
     nb_col: usize,
     title: &String,
-    parameters: &Vec<String>,
-    content: &Vec<String>,
+    parameters: &mut Vec<String>,
+    general_content: &Vec<String>,
+    product_values: &Vec<String>,
     nb_param: usize,
 ) {
-    // let title: String = String:
+    let (mut clean_content, useless_col) = clean_content(general_content, product_values, nb_param);
+    let two_col_tab: bool = match clean_content.len() {
+        0..=10 => false,
+        _ => true,
+    };
+    // textwidth change
+    //
+    let mut tabular_content = vec![
+        "{\\{textwidth}".to_string(),
+        format!("{{{}}}", define_column(nb_col, AlignTab::L)),
+        create_title_tabularx(title.to_string(), nb_col),
+        // create_parameters_tabularx(parameters, useless_col, nb_col),
+        // create_content(clean_content, nb_col),
+    ];
+    tabular_content.push(define_environment(
+        "\\tabulax".to_string(),
+        String::new(),
+        tabular_content.join(""),
+    ));
+
+    let params = create_parameters_tabularx(parameters, &useless_col, nb_col);
+    let size_content = clean_content.len() / 2;
+    if two_col_tab {
+        let first_half = clean_content.split_off(size_content);
+        let mut content: Vec<String> = Vec::new();
+        let mut tabu = Vec<String> =
+        content.push(params.clone());
+        content.push(create_content(first_half, nb_col));
+        tabular_content.push(define_environment(
+            "\\tabulax".to_string(),
+            String::new(),
+            content.join(""),
+        ));
+        tabular_content.push("\\switchcolumn".to_string());
+        let mut content: Vec<String> = Vec::new();
+        content.push(params.clone());
+        content.push(create_content(clean_content, nb_col));
+        tabular_content.push(define_environment(
+            "\\tabulax".to_string(),
+            String::new(),
+            content.join(""),
+        ));
+        tabular_content = define_environment("paracol".to_string(), "2".to_string(), )
+    } else {
+        tabular_content.push(create_parameters_tabularx(parameters, &useless_col, nb_col));
+        tabular_content.push(create_content(clean_content, nb_col));
+    }
+
+    let tabular_content = tabular_content.join("");
+    println!("{tabular_content:?}");
     let tab = Element::Environment(
-        String::from("tabularx"),
-        vec![
-            "{\\textwidth}".to_string(),
-            format!("{{{}}}", define_column(nb_col, AlignTab::L)),
-            create_title_tabularx(title.to_string(), nb_col),
-            create_content(parameters, content, nb_param), // create_sub_title_tabularx(sub_title.to_vec(), nb_col),
-                                                           // create_content_tabularx(content.to_vec(), nb_col),
-        ],
+        String::from("center"),
+        vec![define_environment(
+            "".to_string(),
+            String::from("2"),
+            tabular_content,
+        )],
     );
+
     page.push(tab);
 }
 
@@ -166,23 +269,42 @@ fn create_tabularx(
 pub fn page_blue_print(
     page: &mut Document,
     titles: &Vec<String>,
-    sub_titles: &Vec<Vec<String>>,
-    contents: &Vec<Vec<String>>,
+    parameters: Vec<String>,
+    general_contents: &Vec<Vec<String>>,
+    product_contents: &Vec<Vec<String>>,
     nb_param: usize,
 ) {
     // we iterate over tabulars
     // println!("{sub_titles:?}");
-    for _ in 0..titles.len() {
-        let title = titles.iter().next().unwrap();
-        let sub_title = sub_titles.iter().next().unwrap();
-        let content = contents.iter().next().unwrap();
-        let _tab = create_tabularx(page, 6, title, &sub_title, &content, nb_param);
+    let mut general_content = general_contents.iter();
+    let mut title = titles.iter();
+    let mut product_content = product_contents.iter();
 
+    for i in 0..titles.len() {
+        if i == 0 {
+            let title = title.next();
+            let general_content = general_content.next();
+            let product_content = product_content.next();
+            continue;
+        }
+        let mut params = parameters.clone();
+        let title = title.next();
+        let general_content = general_content.next();
+        let product_content = product_content.next();
+        let _tab = create_tabularx(
+            page,
+            6,
+            title.unwrap(),
+            &mut params,
+            &general_content.unwrap(),
+            &product_content.unwrap(),
+            nb_param,
+        );
         break;
-        // doc.push(create_tabularx(6, title, sub_title, contents));
-        // }
     }
-    // doc.push(&begin_section_wo_param("center".to_string())[..]);
+    //    page.push(Element::UserDefined(String::from("\\footnotesize
+    // \\textbf{Disclaimer} This information and our technical advice - whether verbal, in writing or by way of trials - are given in good faith but without warranty, and this also applies where proprietary rights of third parties are involved. Our advice does not release you from the obligation to check its validity and to test our products as to their suitability for the intended processes and uses. The application, use and processing of our products and the products manufactured by you on the basis of our technical advice are beyond our control and, therefore, entirely your own responsibility. Our products are sold in accordance with our General Conditions of Sale and Delivery.
+    // \\% ")));
 }
 
 pub fn starting_pdf(doc: &mut Document, config: &ConfigXlsx) {
@@ -191,6 +313,7 @@ pub fn starting_pdf(doc: &mut Document, config: &ConfigXlsx) {
     doc.preamble.use_package("xcolor");
     doc.preamble.use_package("colortbl");
     doc.preamble.use_package("geometry");
+    doc.preamble.use_package("paracol");
     let margin: PreambleElement =
         PreambleElement::UserDefined(String::from("\\geometry{margin=0.84in}"));
 
@@ -246,6 +369,19 @@ pub fn starting_pdf(doc: &mut Document, config: &ConfigXlsx) {
         .push(def_color_title)
         .push(def_color_font)
         .push(def_color_line);
+
+    doc.preamble.push(PreambleElement::UserDefined(String::from(
+        "\\color{font_color}",
+    )));
+    doc.preamble.push(PreambleElement::UserDefined(String::from(
+        "\\pagenumbering{gobble}",
+    )));
+    doc.preamble.push(PreambleElement::UserDefined(String::from(
+        "\\renewcommand{\\familydefault}{\\sfdefault}",
+    )));
+    doc.preamble.push(PreambleElement::UserDefined(String::from(
+        "\\renewcommand{\\arraystretch}{1.25}",
+    )));
 
     doc.push(Element::TitlePage).push(Element::ClearPage);
 }
@@ -358,7 +494,7 @@ impl PdfFile {
         end_categories
     }
     /// Return the tab titles
-    pub fn get_title_names(&self, begin_categories: &Vec<(usize, usize)>) -> Vec<String> {
+    pub fn get_values_at(&self, begin_categories: &Vec<(usize, usize)>) -> Vec<String> {
         let mut workbook = self.get_workbook(0);
         let mut output: Vec<String> = vec![];
 

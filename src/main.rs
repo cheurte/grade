@@ -1,7 +1,10 @@
+#[allow(unused_imports)]
 use grade::{page_blue_print, render_tex_file, starting_pdf};
 
 use grade::{ConfigXlsx, TabParameters};
-use latex::{print, Document};
+
+#[allow(unused_imports)]
+use latex::{print, Document, Element};
 
 // use std::process::Command;
 
@@ -19,13 +22,15 @@ fn main() {
             pdf_file.search_cells_coordinates(TabParameters::Product);
         //
         let end_categories_coord = pdf_file.get_parameters_range(&begin_categories_coord);
-        let titles = pdf_file.get_title_names(&begin_categories_coord);
+        let titles = pdf_file.get_values_at(&begin_categories_coord);
+        let parameters = pdf_file.get_values_at(&parameters_coord);
+        // println!("{parameters:?}");
 
         let t: Vec<usize> = parameters_coord.iter().map(|v| v.0).collect();
-        let parameters =
+        let general_content =
             pdf_file.get_parameters_by_id(&begin_categories_coord, &end_categories_coord, t);
 
-        let mut values: Vec<Vec<Vec<String>>> = Vec::new();
+        let mut product_values: Vec<Vec<Vec<String>>> = Vec::new();
 
         // finding the actual content
         for (_, prod_coord) in products_coord.iter().enumerate() {
@@ -34,7 +39,7 @@ fn main() {
                 &begin_categories_coord,
                 &end_categories_coord,
             );
-            values.push(cont_buff.clone());
+            product_values.push(cont_buff.clone());
         }
 
         let mut page = Document::new(latex::DocumentClass::Article);
@@ -42,28 +47,31 @@ fn main() {
 
         // Page creation
         // We iterate over the PRODUCT
-        for _ in 0..values.len() {
-            let content = values.iter().next().unwrap();
+        let mut product_value = product_values.iter();
+        for _ in 0..product_values.len() {
+            let values = product_value.next().unwrap();
             page_blue_print(
                 &mut page,
                 &titles,
-                &parameters,
-                content,
+                parameters.clone(),
+                &general_content,
+                values,
                 parameters_coord.len(),
             );
             break;
+            // page.push(Element::ClearPage);
         }
         let render = print(&page).unwrap();
-        // match render_tex_file(render) {
-        //     Ok(_) => println!("rendered completed"),
-        //     Err(e) => println!("{e:?}"),
-        // }
-        // let exit_status = std::process::Command::new("latexmk")
-        //     .arg("output/report.tex")
-        //     .arg("--output-directory=output/")
-        //     .status()
-        //     .unwrap();
-        // assert!(exit_status.success());
+        match render_tex_file(render) {
+            Ok(_) => println!("rendered completed"),
+            Err(e) => println!("{e:?}"),
+        }
+        let exit_status = std::process::Command::new("latexmk")
+            .arg("output/report.tex")
+            .arg("--output-directory=output/")
+            .status()
+            .unwrap();
+        assert!(exit_status.success());
         break;
     }
 }
