@@ -1,6 +1,4 @@
-use latex::{print, Document, Element, PreambleElement};
-// use serde::__private::ser::constrain;
-// use serde::de::value;
+use latex::{Document, Element, PreambleElement};
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
@@ -17,6 +15,7 @@ pub struct ConfigXlsx {
     pub color_text: Vec<i32>,
     pub color_tab_title: Vec<i32>,
     pub color_tab_line: Vec<i32>,
+    pub margin_size: f32,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -63,14 +62,17 @@ pub fn end_line_tab(line: &mut String) -> String {
     line.to_string()
 }
 
-pub fn add_empty_rows(content: &mut String, nb_rows2add: usize) -> String {
-    content.push_str(&" & ".to_string().repeat(nb_rows2add));
+pub fn add_empty_rows(content: &mut String, nb_rows: usize, nb_params: usize) -> String {
+    if nb_params >= nb_rows {
+        return String::new();
+    }
+    content.push_str(&" & ".to_string().repeat(nb_rows - nb_params));
     content.to_string()
 }
 
 pub fn create_title_tabularx(title: String, nb_col: usize) -> String {
     let mut title = String::from(format!("\\rowcolor{{color_title}}{}", title));
-    add_empty_rows(&mut title, nb_col - 1);
+    add_empty_rows(&mut title, nb_col, 1);
     end_line_tab(&mut title)
 }
 
@@ -152,12 +154,16 @@ fn create_content(clean_content: Vec<Vec<String>>, nb_col: usize) -> String {
     let mut content: String = String::new();
     for line in clean_content.iter() {
         content.push_str(&line.join(" & "));
-        add_empty_rows(&mut content, nb_col - line.len());
+        add_empty_rows(&mut content, nb_col, line.len());
         end_line_tab(&mut content);
         content.push_str(&add_colored_line());
     }
     content = content.replace("%", "\\%");
-    content = content.replace("μ", "micro");
+    content = content.replace("μ", "\\(\\mu\\)");
+    content = content.replace("µ", "\\(\\mu\\)");
+    content = content.replace("<", "\\(<\\) ");
+    content = content.replace(">", "\\(>\\) ");
+    content = content.replace("m2", "\\(m^2\\)");
     content
 }
 fn create_parameters_tabularx(
@@ -177,7 +183,8 @@ fn create_parameters_tabularx(
     parameters.insert(1, String::from("\\textbf{Target Value}"));
     let param_size = parameters.len();
     let mut parameters = parameters.join(" & ");
-    add_empty_rows(&mut parameters, nb_col - param_size);
+    println!("{nb_col}, {param_size}");
+    add_empty_rows(&mut parameters, nb_col, param_size);
     end_line_tab(&mut parameters);
     parameters
 }
@@ -201,64 +208,72 @@ fn create_tabularx(
     product_values: &Vec<String>,
     nb_param: usize,
 ) {
-    let (mut clean_content, useless_col) = clean_content(general_content, product_values, nb_param);
-    let two_col_tab: bool = match clean_content.len() {
-        0..=10 => false,
+    let (mut cleaned_content, useless_col) =
+        clean_content(general_content, product_values, nb_param);
+    let two_col_tab: bool = match cleaned_content.len() {
+        0..=13 => false,
         _ => true,
     };
     // textwidth change
-    //
-    let mut tabular_content = vec![
-        "{\\{textwidth}".to_string(),
+    let mut tabular_content: Vec<String> = Vec::new();
+    let title = vec![
+        "{\\textwidth}".to_string(),
         format!("{{{}}}", define_column(nb_col, AlignTab::L)),
         create_title_tabularx(title.to_string(), nb_col),
-        // create_parameters_tabularx(parameters, useless_col, nb_col),
-        // create_content(clean_content, nb_col),
     ];
-    tabular_content.push(define_environment(
-        "\\tabulax".to_string(),
-        String::new(),
-        tabular_content.join(""),
-    ));
 
     let params = create_parameters_tabularx(parameters, &useless_col, nb_col);
-    let size_content = clean_content.len() / 2;
+    let size_content = cleaned_content.len() / 2;
     if two_col_tab {
-        let first_half = clean_content.split_off(size_content);
-        let mut content: Vec<String> = Vec::new();
-        let mut tabu = Vec<String> =
-        content.push(params.clone());
-        content.push(create_content(first_half, nb_col));
-        tabular_content.push(define_environment(
-            "\\tabulax".to_string(),
-            String::new(),
-            content.join(""),
-        ));
-        tabular_content.push("\\switchcolumn".to_string());
-        let mut content: Vec<String> = Vec::new();
-        content.push(params.clone());
-        content.push(create_content(clean_content, nb_col));
-        tabular_content.push(define_environment(
-            "\\tabulax".to_string(),
-            String::new(),
-            content.join(""),
-        ));
-        tabular_content = define_environment("paracol".to_string(), "2".to_string(), )
+        let first_half = cleaned_content.split_off(size_content);
+        let title_in_env =
+            define_environment("tabularx".to_string(), "".to_string(), title.join(""));
+        let content_1st_half = vec![
+            format!("{{{}}}", define_column(nb_col, AlignTab::L)),
+            params.clone(),
+            create_content(first_half, nb_col),
+        ];
+        let content_2nd_half = vec![
+            format!("{{{}}}", define_column(nb_col, AlignTab::L)),
+            params.clone(),
+            create_content(cleaned_content, nb_col),
+        ];
+        let left_tab = define_environment(
+            "tabularx".to_string(),
+            "0.5\\textwidth".to_string(),
+            content_1st_half.join(""),
+        );
+        let right_tab = define_environment(
+            "tabularx".to_string(),
+            "0.5\\textwidth".to_string(),
+            content_2nd_half.join(""),
+        );
+        let switch_col = String::from("\\switchcolumn");
+        tabular_content.push(
+            vec![
+                title_in_env,
+                define_environment(
+                    "paracol".to_string(),
+                    "2".to_string(),
+                    vec![left_tab, switch_col, right_tab].join(""),
+                ),
+            ]
+            .join(""),
+        );
     } else {
-        tabular_content.push(create_parameters_tabularx(parameters, &useless_col, nb_col));
-        tabular_content.push(create_content(clean_content, nb_col));
+        let mut single_tab: Vec<String> = vec![title.join("")];
+        single_tab.push(params.clone());
+        // println!("ok : {cleaned_content:?}");
+        single_tab.push(create_content(cleaned_content, nb_col));
+        tabular_content.push(define_environment(
+            "tabularx".to_string(),
+            "".to_string(),
+            single_tab.join(""),
+        ));
     }
 
-    let tabular_content = tabular_content.join("");
-    println!("{tabular_content:?}");
-    let tab = Element::Environment(
-        String::from("center"),
-        vec![define_environment(
-            "".to_string(),
-            String::from("2"),
-            tabular_content,
-        )],
-    );
+    // println!("{tabular_content:?}");
+    let tab = Element::Environment(String::from("center"), tabular_content);
 
     page.push(tab);
 }
@@ -268,6 +283,7 @@ fn create_tabularx(
 ///
 pub fn page_blue_print(
     page: &mut Document,
+    product_name: String,
     titles: &Vec<String>,
     parameters: Vec<String>,
     general_contents: &Vec<Vec<String>>,
@@ -275,48 +291,89 @@ pub fn page_blue_print(
     nb_param: usize,
 ) {
     // we iterate over tabulars
-    // println!("{sub_titles:?}");
     let mut general_content = general_contents.iter();
     let mut title = titles.iter();
     let mut product_content = product_contents.iter();
+    let image =
+        String::from("\\includegraphics[scale=0.20]{biotec}\n\\hfill\\tiny Last Updated \\today");
+    let image = define_environment("flushleft".to_string(), "".to_string(), image);
+    page.push(Element::UserDefined(image));
 
-    for i in 0..titles.len() {
-        if i == 0 {
-            let title = title.next();
-            let general_content = general_content.next();
-            let product_content = product_content.next();
-            continue;
-        }
+    let intro = String::from(&format!(
+        "\\hspace{{1cm}}\\\\\n\\textbf{{Preliminary Data Sheed}}\\\\\n{}\\\\\n\\hspace{{1cm}}\\\\",
+        product_name
+    ));
+    page.push(Element::UserDefined(define_environment(
+        "flushleft".to_string(),
+        "".to_string(),
+        intro,
+    )));
+    for _ in 0..titles.len() {
         let mut params = parameters.clone();
         let title = title.next();
         let general_content = general_content.next();
         let product_content = product_content.next();
         let _tab = create_tabularx(
             page,
-            6,
+            params.len(),
             title.unwrap(),
             &mut params,
             &general_content.unwrap(),
             &product_content.unwrap(),
             nb_param,
         );
-        break;
+        // break;
     }
-    //    page.push(Element::UserDefined(String::from("\\footnotesize
-    // \\textbf{Disclaimer} This information and our technical advice - whether verbal, in writing or by way of trials - are given in good faith but without warranty, and this also applies where proprietary rights of third parties are involved. Our advice does not release you from the obligation to check its validity and to test our products as to their suitability for the intended processes and uses. The application, use and processing of our products and the products manufactured by you on the basis of our technical advice are beyond our control and, therefore, entirely your own responsibility. Our products are sold in accordance with our General Conditions of Sale and Delivery.
-    // \\% ")));
+
+    page.push(Element::UserDefined(String::from("\\vspace*{\\fill}")));
+    page.push(Element::UserDefined(String::from("{\\scriptsize
+    \\textbf{Disclaimer} This information and our technical advice - whether verbal, in writing or by way of trials - are given in good faith but without warranty, and this also applies where proprietary rights of third parties are involved. Our advice does not release you from the obligation to check its validity and to test our products as to their suitability for the intended processes and uses. The application, use and processing of our products and the products manufactured by you on the basis of our technical advice are beyond our control and, therefore, entirely your own responsibility. Our products are sold in accordance with our General Conditions of Sale and Delivery \\\\ \n BIOTEC Biologische Naturverpackungen GmbH \\& Co. KG · Werner-Heisenberg-Str. 32 · D.46446 Emmerich \\hfill \\textbf{T} +49 2822 92510\\qquad \\textbf{W} biotec.de}")));
+    page.push(Element::ClearPage);
 }
 
-pub fn starting_pdf(doc: &mut Document, config: &ConfigXlsx) {
-    // let mut doc = Document::new(DocumentClass::Article);
-    doc.preamble.use_package("tabularx");
-    doc.preamble.use_package("xcolor");
-    doc.preamble.use_package("colortbl");
-    doc.preamble.use_package("geometry");
-    doc.preamble.use_package("paracol");
-    let margin: PreambleElement =
-        PreambleElement::UserDefined(String::from("\\geometry{margin=0.84in}"));
+pub fn first_page(page: &mut Document, product_names: &Vec<String>) {
+    let image =
+        String::from("\\includegraphics[scale=0.20]{biotec}\n\\hfill\\tiny Last Updated \\today");
+    let image = define_environment("flushleft".to_string(), "".to_string(), image);
+    page.push(Element::UserDefined(image));
 
+    let mut table_of_content =
+        String::from("\\hspace{1cm}\\\\\n\\textbf{Contents}\\\\\n\\hspace{5in}\\\\\n");
+    let mut item_product: Vec<String> = Vec::new();
+    for (i, product_name) in product_names.iter().enumerate() {
+        item_product.push(format!("\\setItemnumber{{{}}}\n", i + 2));
+        item_product.push(format!("\\item {}\\\\\n", product_name))
+    }
+    let item_product = define_environment(
+        "enumerate".to_string(),
+        "".to_string(),
+        item_product.join(""),
+    );
+
+    table_of_content.push_str(item_product.as_str());
+
+    page.push(Element::UserDefined(define_environment(
+        "flushleft".to_string(),
+        "".to_string(),
+        table_of_content,
+    )));
+    page.push(Element::UserDefined(String::from("\\vspace*{\\fill}")));
+    page.push(Element::UserDefined(String::from("{\\footnotesize
+    \\textbf{Disclaimer} This information and our technical advice - whether verbal, in writing or by way of trials - are given in good faith but without warranty, and this also applies where proprietary rights of third parties are involved. Our advice does not release you from the obligation to check its validity and to test our products as to their suitability for the intended processes and uses. The application, use and processing of our products and the products manufactured by you on the basis of our technical advice are beyond our control and, therefore, entirely your own responsibility. Our products are sold in accordance with our General Conditions of Sale and Delivery.\\\\ \n BIOTEC Biologische Naturverpackungen GmbH \\& Co. KG · Werner-Heisenberg-Str. 32 · D.46446 Emmerich \\hfill \\textbf{T} +49 2822 92510\\qquad \\textbf{W} biotec.de}")));
+    page.push(Element::ClearPage);
+}
+
+pub fn starting_pdf(page: &mut Document, config: &ConfigXlsx) {
+    page.preamble.use_package("tabularx");
+    page.preamble.use_package("xcolor");
+    page.preamble.use_package("colortbl");
+    page.preamble.use_package("geometry");
+    page.preamble.use_package("paracol");
+    page.preamble.use_package("graphicx");
+    let margin: PreambleElement = PreambleElement::UserDefined(String::from(&format!(
+        "\\geometry{{margin={}in}}",
+        config.margin_size
+    )));
     let def_color_title: PreambleElement = PreambleElement::UserDefined(String::from(&format!(
         "\\definecolor{{color_title}}{{RGB}}{{{}}}",
         config
@@ -362,28 +419,40 @@ pub fn starting_pdf(doc: &mut Document, config: &ConfigXlsx) {
             })
             .collect::<String>()
     )));
-    doc.preamble.author("Biotec");
-    doc.preamble.title("Template document");
-    doc.preamble
+    page.preamble.author("Biotec");
+    page.preamble.title("Template");
+    page.preamble
         .push(margin)
         .push(def_color_title)
         .push(def_color_font)
         .push(def_color_line);
 
-    doc.preamble.push(PreambleElement::UserDefined(String::from(
-        "\\color{font_color}",
-    )));
-    doc.preamble.push(PreambleElement::UserDefined(String::from(
-        "\\pagenumbering{gobble}",
-    )));
-    doc.preamble.push(PreambleElement::UserDefined(String::from(
-        "\\renewcommand{\\familydefault}{\\sfdefault}",
-    )));
-    doc.preamble.push(PreambleElement::UserDefined(String::from(
-        "\\renewcommand{\\arraystretch}{1.25}",
-    )));
+    page.preamble
+        .push(PreambleElement::UserDefined(String::from(
+            "\\color{font_color}",
+        )));
+    page.preamble
+        .push(PreambleElement::UserDefined(String::from(
+            "\\pagenumbering{gobble}",
+        )));
+    page.preamble
+        .push(PreambleElement::UserDefined(String::from(
+            "\\renewcommand{\\familydefault}{\\sfdefault}",
+        )));
+    page.preamble
+        .push(PreambleElement::UserDefined(String::from(
+            "\\renewcommand{\\arraystretch}{1.25}",
+        )));
+    page.preamble
+        .push(PreambleElement::UserDefined(String::from(
+            "\\graphicspath{{./resources/}}",
+        )));
+    page.preamble
+        .push(PreambleElement::UserDefined(String::from(
+            "\\newcommand\\setItemnumber[1]{\\setcounter{enumi}{\\numexpr#1-1\\relax}}",
+        )));
 
-    doc.push(Element::TitlePage).push(Element::ClearPage);
+    // page.push(Element::ClearPage);
 }
 
 /// Handle the tex creation.
@@ -402,6 +471,7 @@ impl ConfigXlsx {
             color_text: vec![13, 64, 47],
             color_tab_title: vec![237, 233, 230],
             color_tab_line: vec![215, 212, 210],
+            margin_size: 0.84,
         }
     }
 
@@ -458,6 +528,10 @@ impl PdfFile {
             Some(Err(e)) => println!("{e:?}"),
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
+        println!("****************");
+        println!("{}", output.len());
+        println!("{}", field.len());
+        println!("****************");
         assert_eq!(output.len(), field.len());
         output
     }

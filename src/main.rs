@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use grade::{page_blue_print, render_tex_file, starting_pdf};
 
-use grade::{ConfigXlsx, TabParameters};
+use grade::{first_page, ConfigXlsx, TabParameters};
 
 #[allow(unused_imports)]
 use latex::{print, Document, Element};
@@ -24,6 +24,7 @@ fn main() {
         let end_categories_coord = pdf_file.get_parameters_range(&begin_categories_coord);
         let titles = pdf_file.get_values_at(&begin_categories_coord);
         let parameters = pdf_file.get_values_at(&parameters_coord);
+        let product_names = pdf_file.get_values_at(&products_coord);
         // println!("{parameters:?}");
 
         let t: Vec<usize> = parameters_coord.iter().map(|v| v.0).collect();
@@ -44,21 +45,24 @@ fn main() {
 
         let mut page = Document::new(latex::DocumentClass::Article);
         starting_pdf(&mut page, &configs);
-
+        first_page(&mut page, &product_names);
         // Page creation
         // We iterate over the PRODUCT
         let mut product_value = product_values.iter();
+        let mut product_names = product_names.iter();
         for _ in 0..product_values.len() {
             let values = product_value.next().unwrap();
+            let product_name = product_names.next().unwrap();
             page_blue_print(
                 &mut page,
+                product_name.to_string(),
                 &titles,
                 parameters.clone(),
                 &general_content,
                 values,
                 parameters_coord.len(),
             );
-            break;
+            // break;
             // page.push(Element::ClearPage);
         }
         let render = print(&page).unwrap();
@@ -68,6 +72,7 @@ fn main() {
         }
         let exit_status = std::process::Command::new("latexmk")
             .arg("output/report.tex")
+            .arg("-pdf")
             .arg("--output-directory=output/")
             .status()
             .unwrap();
