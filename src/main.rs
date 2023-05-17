@@ -63,7 +63,6 @@ fn main() {
                 parameters_coord.len(),
             );
             // break;
-            // page.push(Element::ClearPage);
         }
         let render = print(&page).unwrap();
         match render_tex_file(render) {

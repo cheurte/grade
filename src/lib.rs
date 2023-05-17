@@ -1,6 +1,7 @@
 use latex::{Document, Element, PreambleElement};
 use std::fs::File;
 use std::io::{BufReader, Write};
+use std::panic::UnwindSafe;
 use std::path::Path;
 // use std::process::Output;
 
@@ -16,6 +17,7 @@ pub struct ConfigXlsx {
     pub color_tab_title: Vec<i32>,
     pub color_tab_line: Vec<i32>,
     pub margin_size: f32,
+    pub alignment_tabular: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -43,6 +45,7 @@ pub enum TabParameters {
     Product,
 }
 
+/// Define how shoud be aligne the columns
 fn define_column(nb_col: usize, align: AlignTab) -> String {
     let mut column_definition: String = String::new();
     let align = match align {
@@ -57,11 +60,14 @@ fn define_column(nb_col: usize, align: AlignTab) -> String {
     column_definition
 }
 
+/// Add an latex end on line.
 pub fn end_line_tab(line: &mut String) -> String {
     line.push_str(" \\\\\n");
     line.to_string()
 }
 
+/// Add empty & to a row to artificially increase the size of the row. not used
+/// anymore.
 pub fn add_empty_rows(content: &mut String, nb_rows: usize, nb_params: usize) -> String {
     if nb_params >= nb_rows {
         return String::new();
@@ -70,12 +76,14 @@ pub fn add_empty_rows(content: &mut String, nb_rows: usize, nb_params: usize) ->
     content.to_string()
 }
 
+/// Create the title of a tabular, very specific
 pub fn create_title_tabularx(title: String, nb_col: usize) -> String {
     let mut title = String::from(format!("\\rowcolor{{color_title}}{}", title));
     add_empty_rows(&mut title, nb_col, 1);
     end_line_tab(&mut title)
 }
 
+/// Function that add a colored line to a tab, very specific.
 fn add_colored_line() -> String {
     String::from(
         "\\arrayrulecolor{line_color}\\hline
@@ -136,6 +144,8 @@ fn clean_vector(double_shape_vec: Vec<Vec<String>>) -> (Vec<Vec<String>>, Vec<us
     (resized_vec, useless_col)
 }
 
+/// Function that call all the cleaning function of the data
+/// The main goal is not to have any empty row
 fn clean_content(
     parameters: &Vec<String>,
     content: &Vec<String>,
@@ -166,6 +176,9 @@ fn create_content(clean_content: Vec<Vec<String>>, nb_col: usize) -> String {
     content = content.replace("m2", "\\(m^2\\)");
     content
 }
+
+/// Function that return a line of a tabular with every element in bold (used
+/// here for the parameters names).
 fn create_parameters_tabularx(
     parameters: &mut Vec<String>,
     useless_col: &Vec<usize>,
@@ -183,12 +196,14 @@ fn create_parameters_tabularx(
     parameters.insert(1, String::from("\\textbf{Target Value}"));
     let param_size = parameters.len();
     let mut parameters = parameters.join(" & ");
-    println!("{nb_col}, {param_size}");
     add_empty_rows(&mut parameters, nb_col, param_size);
     end_line_tab(&mut parameters);
     parameters
 }
 
+/// Funtion to add some content in a string into an Environment
+/// some parameters can be added. It is very simple thought, only one parameter
+/// can be added.
 fn define_environment(name: String, parameters: String, content: String) -> String {
     if parameters.is_empty() {
         return format!("\\begin{{{name}}}\n{content}\n\\end{{{name}}}");
@@ -197,6 +212,27 @@ fn define_environment(name: String, parameters: String, content: String) -> Stri
     }
 }
 
+fn find_larger_rows(content: &Vec<Vec<String>>) -> Vec<usize> {
+    let mut indices_bigger_row: Vec<usize> = Vec::new();
+    content.iter().enumerate().for_each(|(i, e)| {
+        if e.get(0).unwrap().len() > 26 {
+            indices_bigger_row.push(i)
+        }
+    });
+    indices_bigger_row
+}
+
+fn add_rule_row(content: &mut Vec<Vec<String>>, indices: Vec<usize>) {
+    for (i, value) in content.iter_mut().enumerate() {
+        if indices.iter().find(|v| **v == i).is_some() {
+            value
+                .iter_mut()
+                .nth(0)
+                .unwrap()
+                .push_str(" \\rule{80pt}{0pt}");
+        }
+    }
+}
 /// Function that reunite all the tabular creation functions
 /// add to the page one centered tabular
 fn create_tabularx(
@@ -225,7 +261,16 @@ fn create_tabularx(
     let params = create_parameters_tabularx(parameters, &useless_col, nb_col);
     let size_content = cleaned_content.len() / 2;
     if two_col_tab {
-        let first_half = cleaned_content.split_off(size_content);
+        let mut first_half = cleaned_content.split_off(size_content);
+
+        let indices_first_hal = find_larger_rows(&first_half);
+        let indices_sec_half = find_larger_rows(&cleaned_content);
+
+        println!("{indices_first_hal:?}");
+        println!("{indices_sec_half:?}");
+        add_rule_row(&mut first_half, indices_sec_half);
+        add_rule_row(&mut cleaned_content, indices_first_hal);
+
         let title_in_env =
             define_environment("tabularx".to_string(), "".to_string(), title.join(""));
         let content_1st_half = vec![
@@ -331,6 +376,8 @@ pub fn page_blue_print(
     page.push(Element::ClearPage);
 }
 
+/// Define the first page of the document
+/// We find on it only the names of the products
 pub fn first_page(page: &mut Document, product_names: &Vec<String>) {
     let image =
         String::from("\\includegraphics[scale=0.20]{biotec}\n\\hfill\\tiny Last Updated \\today");
@@ -363,6 +410,9 @@ pub fn first_page(page: &mut Document, product_names: &Vec<String>) {
     page.push(Element::ClearPage);
 }
 
+/// To define all the preamble element of the page.
+/// All the key element are in the config file
+///
 pub fn starting_pdf(page: &mut Document, config: &ConfigXlsx) {
     page.preamble.use_package("tabularx");
     page.preamble.use_package("xcolor");
@@ -472,6 +522,7 @@ impl ConfigXlsx {
             color_tab_title: vec![237, 233, 230],
             color_tab_line: vec![215, 212, 210],
             margin_size: 0.84,
+            alignment_tabular: String::from("left"),
         }
     }
 
@@ -528,10 +579,6 @@ impl PdfFile {
             Some(Err(e)) => println!("{e:?}"),
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
-        println!("****************");
-        println!("{}", output.len());
-        println!("{}", field.len());
-        println!("****************");
         assert_eq!(output.len(), field.len());
         output
     }
