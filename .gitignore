@@ -14,3 +14,9 @@ Cargo.lock
 # *.pdf
 # /output/
 # /sources/
+*.aux
+*.dvi
+*.fdb_latexmk
+*.fls
+*.log
+*.gz
