@@ -1,9 +1,7 @@
 use latex::{Document, Element, PreambleElement};
 use std::fs::File;
 use std::io::{BufReader, Write};
-use std::panic::UnwindSafe;
 use std::path::Path;
-// use std::process::Output;
 
 use calamine::{open_workbook, DataType, Reader, Xlsx};
 
@@ -85,10 +83,7 @@ pub fn create_title_tabularx(title: String, nb_col: usize) -> String {
 
 /// Function that add a colored line to a tab, very specific.
 fn add_colored_line() -> String {
-    String::from(
-        "\\arrayrulecolor{line_color}\\hline
-",
-    )
+    String::from("\\arrayrulecolor{line_color}\\hline")
 }
 
 /// reshape a 1D vector of string into a 2D vector
@@ -126,7 +121,7 @@ fn transpose2dvec(col_vec: Vec<Vec<String>>) -> Vec<Vec<String>> {
     output
 }
 
-/// Function to clean a 2D vector of String all values of one of the vector are
+/// Function to clean a 2D vector of String when all values of one of the vector are
 /// equal to ""
 /// # Exampes
 /// vec![vec!["a","b","c"],vec!["", "", ""], vec!["d", "e", "f"]]
@@ -146,6 +141,7 @@ fn clean_vector(double_shape_vec: Vec<Vec<String>>) -> (Vec<Vec<String>>, Vec<us
 
 /// Function that call all the cleaning function of the data
 /// The main goal is not to have any empty row
+/// n/a is not considered as an empty row
 fn clean_content(
     parameters: &Vec<String>,
     content: &Vec<String>,
@@ -158,6 +154,7 @@ fn clean_content(
     clean_param.insert(1, content.to_vec());
     (transpose2dvec(clean_param), useless_col)
 }
+
 /// Function to create the content of the tab
 /// Must take a clean content to properly work
 fn create_content(clean_content: Vec<Vec<String>>, nb_col: usize) -> String {
@@ -168,6 +165,7 @@ fn create_content(clean_content: Vec<Vec<String>>, nb_col: usize) -> String {
         end_line_tab(&mut content);
         content.push_str(&add_colored_line());
     }
+    // just for now, to be improved later
     content = content.replace("%", "\\%");
     content = content.replace("μ", "\\(\\mu\\)");
     content = content.replace("µ", "\\(\\mu\\)");
@@ -266,13 +264,12 @@ fn create_tabularx(
         let indices_first_hal = find_larger_rows(&first_half);
         let indices_sec_half = find_larger_rows(&cleaned_content);
 
-        println!("{indices_first_hal:?}");
-        println!("{indices_sec_half:?}");
         add_rule_row(&mut first_half, indices_sec_half);
         add_rule_row(&mut cleaned_content, indices_first_hal);
 
         let title_in_env =
             define_environment("tabularx".to_string(), "".to_string(), title.join(""));
+
         let content_1st_half = vec![
             format!("{{{}}}", define_column(nb_col, AlignTab::L)),
             params.clone(),
@@ -283,6 +280,7 @@ fn create_tabularx(
             params.clone(),
             create_content(cleaned_content, nb_col),
         ];
+
         let left_tab = define_environment(
             "tabularx".to_string(),
             "0.5\\textwidth".to_string(),
@@ -293,6 +291,7 @@ fn create_tabularx(
             "0.5\\textwidth".to_string(),
             content_2nd_half.join(""),
         );
+
         let switch_col = String::from("\\switchcolumn");
         tabular_content.push(
             vec![
@@ -317,7 +316,6 @@ fn create_tabularx(
         ));
     }
 
-    // println!("{tabular_content:?}");
     let tab = Element::Environment(String::from("center"), tabular_content);
 
     page.push(tab);
