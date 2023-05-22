@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
-use grade::{page_blue_print, render_tex_file, starting_pdf};
+use grade::render_tex_file;
 
-use grade::{first_page, ConfigXlsx, TabParameters};
+use grade::{ConfigXlsx, TabParameters};
 
 #[allow(unused_imports)]
 use latex::{print, Document, Element};
@@ -44,8 +44,8 @@ fn main() {
         }
 
         let mut page = Document::new(latex::DocumentClass::Article);
-        starting_pdf(&mut page, &configs);
-        first_page(&mut page, &product_names);
+        configs.starting_pdf(&mut page);
+        configs.first_page(&mut page, &product_names);
         // Page creation
         // We iterate over the PRODUCT
         let mut product_value = product_values.iter();
@@ -53,7 +53,7 @@ fn main() {
         for _ in 0..product_values.len() {
             let values = product_value.next().unwrap();
             let product_name = product_names.next().unwrap();
-            page_blue_print(
+            configs.page_blue_print(
                 &mut page,
                 product_name.to_string(),
                 &titles,
@@ -64,11 +64,13 @@ fn main() {
             );
             // break;
         }
+
         let render = print(&page).unwrap();
         match render_tex_file(render) {
             Ok(_) => println!("rendered completed"),
             Err(e) => println!("{e:?}"),
         }
+
         let exit_status = std::process::Command::new("latexmk")
             .arg("output/report.tex")
             .arg("-pdf")
