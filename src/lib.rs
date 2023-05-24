@@ -24,7 +24,7 @@ pub struct ConfigXlsx {
 #[serde(rename_all = "camelCase")]
 pub struct PdfFile {
     _pdf_name: String,
-    sources: Vec<String>,
+    pub sources: Vec<String>,
     sheets_name: Vec<String>,
     products: Vec<String>,
     categories: Vec<String>,
@@ -54,23 +54,25 @@ pub fn render_tex_file(rendered: String) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Implementation of a config file.
 impl ConfigXlsx {
     pub fn new() -> Self {
         Self {
-            pdf_file: vec![],
-            color_text: vec![13, 64, 47],
-            color_tab_title: vec![237, 233, 230],
-            color_tab_line: vec![215, 212, 210],
+            pdf_file: Vec::new(),
+            color_text: Vec::new(),
+            color_tab_title: Vec::new(),
+            color_tab_line: Vec::new(),
             margin_size: 0.84,
             alignment_tabular: String::from("left"),
         }
     }
 
-    pub fn from(path: &str) -> Self {
+    /// from a path
+    pub fn from(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let path = Path::new(path);
-        let file = File::open(path).expect("Problem with the file");
-        let config: ConfigXlsx = serde_json::from_reader(file).expect("error in the reading");
-        config
+        let file = File::open(path)?;
+        let config: ConfigXlsx = serde_json::from_reader(file)?;
+        Ok(config)
     }
 
     /// To define all the preamble element of the page.
@@ -212,7 +214,7 @@ impl ConfigXlsx {
         general_contents: &Vec<Vec<String>>,
         product_contents: &Vec<Vec<String>>,
         nb_param: usize,
-    ) {
+    ) -> Option<()> {
         // we iterate over tabulars
         let mut general_content = general_contents.iter();
         let mut title = titles.iter();
@@ -227,7 +229,7 @@ impl ConfigXlsx {
         let intro = String::from(&format!(
         "\\hspace{{1cm}}\\\\\n\\textbf{{Preliminary Data Sheed}}\\\\\n{}\\\\\n\\hspace{{1cm}}\\\\",
         product_name
-    ));
+        ));
         page.push(Element::UserDefined(tab_creation::define_environment(
             "flushleft".to_string(),
             "".to_string(),
@@ -248,10 +250,10 @@ impl ConfigXlsx {
             let _tab = tab_creation::create_tabularx(
                 page,
                 params.len(),
-                title.unwrap(),
+                title?,
                 &mut params,
-                &general_content.unwrap(),
-                &product_content.unwrap(),
+                &general_content?.to_vec(),
+                &product_content?.to_vec(),
                 nb_param,
                 &align,
             );
@@ -260,8 +262,9 @@ impl ConfigXlsx {
 
         page.push(Element::UserDefined(String::from("\\vspace*{\\fill}")));
         page.push(Element::UserDefined(String::from("{\\scriptsize
-    \\textbf{Disclaimer} This information and our technical advice - whether verbal, in writing or by way of trials - are given in good faith but without warranty, and this also applies where proprietary rights of third parties are involved. Our advice does not release you from the obligation to check its validity and to test our products as to their suitability for the intended processes and uses. The application, use and processing of our products and the products manufactured by you on the basis of our technical advice are beyond our control and, therefore, entirely your own responsibility. Our products are sold in accordance with our General Conditions of Sale and Delivery \\\\ \n BIOTEC Biologische Naturverpackungen GmbH \\& Co. KG · Werner-Heisenberg-Str. 32 · D.46446 Emmerich \\hfill \\textbf{T} +49 2822 92510\\qquad \\textbf{W} biotec.de}")));
+        \\textbf{Disclaimer} This information and our technical advice - whether verbal, in writing or by way of trials - are given in good faith but without warranty, and this also applies where proprietary rights of third parties are involved. Our advice does not release you from the obligation to check its validity and to test our products as to their suitability for the intended processes and uses. The application, use and processing of our products and the products manufactured by you on the basis of our technical advice are beyond our control and, therefore, entirely your own responsibility. Our products are sold in accordance with our General Conditions of Sale and Delivery \\\\ \n BIOTEC Biologische Naturverpackungen GmbH \\& Co. KG · Werner-Heisenberg-Str. 32 · D.46446 Emmerich \\hfill \\textbf{T} +49 2822 92510\\qquad \\textbf{W} biotec.de}")));
         page.push(Element::ClearPage);
+        Some(())
     }
 }
 
@@ -269,8 +272,7 @@ impl PdfFile {
     /// Function to find and return a workbook by id
     pub fn get_workbook(&self, id_woorkbook: usize) -> Xlsx<BufReader<File>> {
         let path = self.sources.iter().nth(id_woorkbook).unwrap();
-        let workbook: Xlsx<_> = open_workbook(path)
-            .expect("Cannot open workbook. It is probably an error in the path of the workbook.");
+        let workbook: Xlsx<_> = open_workbook(path).expect("error in opening file");
         workbook
     }
 
@@ -345,8 +347,8 @@ impl PdfFile {
         }
         end_categories
     }
-    /// Return the tab titles
-    pub fn get_values_at(&self, begin_categories: &Vec<(usize, usize)>) -> Vec<String> {
+    /// Return the values at a given coordinates
+    pub fn get_values_at(&self, begin_categories: &Vec<(usize, usize)>) -> Option<Vec<String>> {
         let mut workbook = self.get_workbook(0);
         let mut output: Vec<String> = vec![];
 
@@ -355,13 +357,13 @@ impl PdfFile {
                 for category in begin_categories {
                     let (a, b) = category;
                     // println!("{:?}", range.get_value((*a as u32, *b as u32)));
-                    output.push(range.get_value((*a as u32, *b as u32)).unwrap().to_string())
+                    output.push(range.get_value((*a as u32, *b as u32))?.to_string())
                 }
             }
             Some(Err(e)) => println!("{e:?}"),
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
-        output
+        Some(output)
     }
 
     pub fn get_parameters_by_id(

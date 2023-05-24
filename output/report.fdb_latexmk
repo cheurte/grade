@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1684763043 "report.tex" "report.pdf" "report" 1684763043 0
+["pdflatex"] 1684918314 "output/report.tex" "output/report.pdf" "report" 1684918314 0
   "/home/cheurte/.texlive2021/texmf-var/web2c/pdftex/pdflatex.fmt" 1683712487 1343374 1b5d5777ba48714416a3ecdf595d7061 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -40,11 +40,11 @@
   "/usr/share/texlive/texmf-dist/tex/latex/xcolor/xcolor.sty" 1463002160 55589 34128738f682d033422ca125f82e5d62 ""
   "/usr/share/texlive/texmf-dist/web2c/texmf.cnf" 1681497499 40136 b05acc85e8425979e52682d98a2bcacf ""
   "/usr/share/texlive/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1683717989 5129912 224731adee7d9f5b2de888652edcd522 ""
-  "report.aux" 1684763043 32 c81c40425fbb5e93b90fba65da0b5e61 "pdflatex"
-  "report.tex" 1684763042 16621 241f40fced3b8b019db521b6846d43b0 ""
-  "resources//biotec.png" 1684312703 15414 61ddfe410d7010b520d7a24043b604c0 ""
+  "output/./resources//biotec.png" 1684312703 15414 61ddfe410d7010b520d7a24043b604c0 ""
+  "output/report.aux" 1684918314 32 c81c40425fbb5e93b90fba65da0b5e61 "pdflatex"
+  "output/report.tex" 1684918314 16685 a65b8c9f92aa7c2656fef87a094168c1 ""
   (generated)
-  "report.aux"
-  "report.log"
-  "report.pdf"
+  "output/report.aux"
+  "output/report.log"
+  "output/report.pdf"
   (rewritten before read)

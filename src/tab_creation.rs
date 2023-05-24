@@ -87,7 +87,6 @@ pub fn transpose2dvec(col_vec: Vec<Vec<String>>) -> Vec<Vec<String>> {
 pub fn clean_vector(double_shape_vec: Vec<Vec<String>>) -> (Vec<Vec<String>>, Vec<usize>) {
     let mut resized_vec: Vec<Vec<String>> = Vec::new();
     let mut useless_col: Vec<usize> = Vec::new();
-    println!("{double_shape_vec:?}");
     for (i, arr) in double_shape_vec.iter().enumerate() {
         if arr.iter().any(|f| !f.is_empty()) {
             resized_vec.push(arr.to_vec());
@@ -109,7 +108,6 @@ pub fn clean_content(
     assert_eq!(parameters.len() % nb_param, 0);
     // Cleaning and re organizing the data
     let parameters = reshape_vector_by_col(parameters.to_vec(), nb_param);
-    // println!("{parameters:?}");
     let (mut clean_param, useless_col) = clean_vector(parameters);
     clean_param.insert(1, content.to_vec());
     (transpose2dvec(clean_param), useless_col)
@@ -173,7 +171,7 @@ pub fn define_environment(name: String, parameters: String, content: String) -> 
 pub fn find_larger_rows(content: &Vec<Vec<String>>) -> Vec<usize> {
     let mut indices_bigger_row: Vec<usize> = Vec::new();
     content.iter().enumerate().for_each(|(i, e)| {
-        if e.get(0).unwrap().len() > 26 {
+        if e.first().unwrap().len() > 26 {
             indices_bigger_row.push(i)
         }
     });
@@ -204,10 +202,8 @@ pub fn create_tabularx(
     nb_param: usize,
     align: &AlignTab,
 ) {
-    // println!("{general_content:?}");
     let (mut cleaned_content, useless_col) =
         clean_content(general_content, product_values, nb_param);
-    // println!("{cleaned_content:?}");
     let two_col_tab: bool = match cleaned_content.len() {
         0..=13 => false,
         _ => true,
@@ -271,7 +267,6 @@ pub fn create_tabularx(
     } else {
         let mut single_tab: Vec<String> = vec![title.join("")];
         single_tab.push(params.clone());
-        // println!("ok : {cleaned_content:?}");
         single_tab.push(create_content(cleaned_content, nb_col));
         tabular_content.push(define_environment(
             "tabularx".to_string(),

@@ -10,7 +10,7 @@
         {
             "pdfName":"pdf1",
             "sources": [
-                "/home/cheurte/Documents/grade/sources/BIOTEC.xlsx"
+                "sources/BIOTEC.xlsm"
             ],
             "sheetsName": [
                 "Master - Rigid Overview "
@@ -36,7 +36,7 @@
         {
             "pdfName":"pdf2",
             "sources": [
-                "/home/cheurte/Documents/grade/sources/BIOTEC.xlsx"
+                "sources/BIOTEC.xlsx"
             ] ,
             "sheetsName": [
                 "Master - Flexible Overview"
