@@ -1,7 +1,5 @@
-use grade::render_tex_file;
-
 use grade::{ConfigXlsx, TabParameters};
-use latex::{print, Document};
+use latex::Document;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let configs = ConfigXlsx::from("config/config_source.json")?;
@@ -24,7 +22,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let product_names = pdf_file
             .get_values_at(&products_coord)
             .ok_or("Error at getting product names")?;
-        // println!("{parameters:?}");
 
         let t: Vec<usize> = parameters_coord.iter().map(|v| v.0).collect();
         let general_content =
@@ -45,6 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut page = Document::new(latex::DocumentClass::Article);
         configs.starting_pdf(&mut page);
         configs.first_page(&mut page, &product_names);
+
         // Page creation
         // We iterate over the PRODUCT
         let mut product_value = product_values.iter();
@@ -66,17 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // break;
         }
 
-        let render = print(&page)?;
-        match render_tex_file(render, pdf_file.pdf_name.clone()) {
-            Ok(_) => println!("rendered completed"),
-            Err(e) => println!("{e:?}"),
-        }
-        let out_path = String::from(&format!("output/{}.tex", pdf_file.pdf_name));
-        std::process::Command::new("latexmk")
-            .arg(out_path)
-            .arg("-pdf")
-            .arg("--output-directory=output/")
-            .status()?;
+        pdf_file.create_and_render(page)?;
     }
     Ok(())
 }

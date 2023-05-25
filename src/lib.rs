@@ -1,4 +1,4 @@
-use latex::{Document, Element, PreambleElement};
+use latex::{print, Document, Element, PreambleElement};
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
@@ -426,5 +426,20 @@ impl PdfFile {
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
         out
+    }
+    /// create and render pdf
+    pub fn create_and_render(&self, page: Document) -> Result<(), Box<dyn std::error::Error>> {
+        let render = print(&page)?;
+        match render_tex_file(render, self.pdf_name.clone()) {
+            Ok(_) => println!("rendered completed"),
+            Err(e) => println!("{e:?}"),
+        }
+        let out_path = String::from(&format!("output/{}.tex", self.pdf_name));
+        std::process::Command::new("latexmk")
+            .arg(out_path)
+            .arg("-pdf")
+            .arg("--output-directory=output/")
+            .status()?;
+        Ok(())
     }
 }
