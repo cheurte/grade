@@ -47,6 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // We iterate over the PRODUCT
         let mut product_value = product_values.iter();
         let mut product_names = product_names.iter();
+        let _test = 1;
         for _ in 0..product_values.len() {
             let values = product_value.next().ok_or("no value next")?;
             let product_name = product_names.next().ok_or("no value next")?;
