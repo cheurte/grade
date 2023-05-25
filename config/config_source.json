@@ -4,7 +4,7 @@
     "colorTabTitle": [237, 233, 230],
     "colorTabLine": [215, 212, 210],
     "marginSize": 0.75,
-    "alignmentTabular": "right",
+    "alignmentTabular": "left",
 
     "pdfFile":[
         {
@@ -36,16 +36,26 @@
         {
             "pdfName":"pdf2",
             "sources": [
-                "sources/BIOTEC.xlsx"
-            ] ,
+                "sources/BIOTEC.xlsm"
+            ],
             "sheetsName": [
-                "Master - Flexible Overview"
+                "Master - Rigid Overview "
             ],
             "products":[
-            ""
+                "BIOPLAST 800"
             ],
-            "categories":[],
-            "parameters":[]
+            "categories":[
+                "Properties",
+                "Mechanical Properties",
+                "Compostable Certification"
+            ],
+            "parameters":[
+                "Parameters",
+                "Certification",
+                "Unit",
+                "Descriptions",
+                "Standart"
+            ]
         }
     ]
 }

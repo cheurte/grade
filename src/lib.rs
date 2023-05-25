@@ -23,7 +23,7 @@ pub struct ConfigXlsx {
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PdfFile {
-    _pdf_name: String,
+    pub pdf_name: String,
     pub sources: Vec<String>,
     sheets_name: Vec<String>,
     products: Vec<String>,
@@ -48,8 +48,8 @@ pub enum TabParameters {
 /// Handle the tex creation.
 /// Seperate function to handle the windows server lately -> ToDo
 ///
-pub fn render_tex_file(rendered: String) -> std::io::Result<()> {
-    let mut f = File::create("output/report.tex")?;
+pub fn render_tex_file(rendered: String, pdf_name: String) -> std::io::Result<()> {
+    let mut f = File::create(&format!("output/{}.tex", pdf_name))?;
     write!(f, "{}", rendered)?;
     Ok(())
 }

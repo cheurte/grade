@@ -67,17 +67,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         let render = print(&page)?;
-        match render_tex_file(render) {
+        match render_tex_file(render, pdf_file.pdf_name.clone()) {
             Ok(_) => println!("rendered completed"),
             Err(e) => println!("{e:?}"),
         }
-
+        let out_path = String::from(&format!("output/{}.tex", pdf_file.pdf_name));
         std::process::Command::new("latexmk")
-            .arg("output/report.tex")
+            .arg(out_path)
             .arg("-pdf")
             .arg("--output-directory=output/")
             .status()?;
-        break;
     }
     Ok(())
 }
