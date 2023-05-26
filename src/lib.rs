@@ -1,4 +1,5 @@
 use latex::{print, Document, Element, PreambleElement};
+use std::default::Default;
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
@@ -45,8 +46,37 @@ pub enum TabParameters {
     Product,
 }
 
-pub fn parse_args(args: &[String]) -> &str {
-    &args[1]
+#[derive(Debug, Clone)]
+pub struct Config {
+    config_path: String,
+}
+
+impl Config {
+    pub fn new(args: &[String]) -> Result<Config, &'static str> {
+        println!("{}", args.len());
+        if args.len() < 2 {
+            // panic!("not enough");
+            // println!("Not enough argument provided");
+            // std::process::exit(1);
+            return Err("Not enough argument");
+        }
+
+        Ok(Config {
+            config_path: args[1].clone(),
+        })
+    }
+
+    pub fn get_config_path(&self) -> &String {
+        &self.config_path
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            config_path: String::from("config/config_source.json"),
+        }
+    }
 }
 
 /// Handle the tex creation.
