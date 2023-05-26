@@ -1,5 +1,6 @@
 use latex::{print, Document, Element, PreambleElement};
 use std::default::Default;
+use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
@@ -24,9 +25,10 @@ pub struct ConfigXlsx {
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PdfFile {
-    pub pdf_name: String,
-    pub sources: Vec<String>,
-    sheets_name: Vec<String>,
+    pdf_name: String,
+    pub output: String,
+    source: String,
+    worksheet: String,
     products: Vec<String>,
     categories: Vec<String>,
     parameters: Vec<String>,
@@ -53,11 +55,7 @@ pub struct Config {
 
 impl Config {
     pub fn new(args: &[String]) -> Result<Config, &'static str> {
-        println!("{}", args.len());
         if args.len() < 2 {
-            // panic!("not enough");
-            // println!("Not enough argument provided");
-            // std::process::exit(1);
             return Err("Not enough argument");
         }
 
@@ -86,6 +84,19 @@ pub fn render_tex_file(rendered: String, pdf_name: String) -> std::io::Result<()
     let mut f = File::create(&format!("output/{}.tex", pdf_name))?;
     write!(f, "{}", rendered)?;
     Ok(())
+}
+
+impl Default for ConfigXlsx {
+    fn default() -> Self {
+        Self {
+            pdf_file: vec![PdfFile::default()],
+            color_text: Vec::from([13, 64, 47]),
+            color_tab_title: Vec::from([237, 233, 230]),
+            color_tab_line: Vec::from([215, 212, 210]),
+            margin_size: 0.80,
+            alignment_tabular: String::from("left"),
+        }
+    }
 }
 
 /// Implementation of a config file.
@@ -302,25 +313,41 @@ impl ConfigXlsx {
     }
 }
 
+impl Default for PdfFile {
+    fn default() -> Self {
+        Self {
+            pdf_name: String::from("Default File"),
+            output: String::from("output/"),
+            source: Config::default().get_config_path().to_string(),
+            worksheet: String::from("Master - Rigid Overview "),
+            products: Vec::new(),
+            categories: Vec::new(),
+            parameters: Vec::new(),
+        }
+    }
+}
+
 impl PdfFile {
-    /// Function to find and return a workbook by id
-    pub fn get_workbook(&self, id_woorkbook: usize) -> Xlsx<BufReader<File>> {
-        let path = self.sources.iter().nth(id_woorkbook).unwrap();
-        let workbook: Xlsx<_> = open_workbook(path).expect("error in opening file");
-        workbook
+    pub fn new() -> Self {
+        Self {
+            pdf_name: String::new(),
+            output: String::new(),
+            source: String::new(),
+            worksheet: String::new(),
+            products: Vec::new(),
+            categories: Vec::new(),
+            parameters: Vec::new(),
+        }
     }
 
-    /// Function to find and return a worksheet by id
-    pub fn get_worksheet(&self, id_worksheet: usize) -> &String {
-        self.sheets_name.iter().nth(id_worksheet).expect(
-            "Please make sur the name between the worksheet and
-                the name given in the configuration file are the same.",
-        )
+    // Function to return a workbook
+    pub fn get_workbook(&self) -> Result<Xlsx<BufReader<File>>, Box<dyn Error>> {
+        let workbook: Xlsx<_> = open_workbook(&self.source)?;
+        Ok(workbook)
     }
-    /// Function to search the key elements of the file.
-    /// Suppose to depend on a json file to know wich line or row can be read.
-    pub fn search_cells_coordinates(&self, field: TabParameters) -> Vec<(usize, usize)> {
-        let mut workbook = self.get_workbook(0);
+
+    pub fn search_cells_coordinates(&self, field: TabParameters) -> Option<Vec<(usize, usize)>> {
+        let mut workbook = self.get_workbook().ok()?;
 
         let mut output: Vec<(usize, usize)> = Vec::new();
         let field = match field {
@@ -328,14 +355,14 @@ impl PdfFile {
             TabParameters::Parameter => &self.parameters,
             TabParameters::Category => &self.categories,
         };
-        match workbook.worksheet_range(self.get_worksheet(0)) {
+        match workbook.worksheet_range(&self.worksheet) {
             Some(Ok(range)) => {
                 for row in 0..range.get_size().0 {
                     for col in 0..range.get_size().1 {
                         let value = range.get_value((row as u32, col as u32));
                         if value != Some(&DataType::Empty) {
                             for category in field {
-                                if &value.unwrap().to_string() == category {
+                                if &value?.to_string() == category {
                                     output.push((row, col));
                                 }
                             }
@@ -347,7 +374,7 @@ impl PdfFile {
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
         assert_eq!(output.len(), field.len());
-        output
+        Some(output)
     }
 
     /// Search the range of categories, to know where to stop
@@ -355,12 +382,11 @@ impl PdfFile {
     pub fn get_parameters_range(
         &self,
         categories_coord: &Vec<(usize, usize)>,
-    ) -> Vec<(usize, usize)> {
-        // let sheet = self.sheets_name.iter().nth(0).unwrap();
+    ) -> Option<Vec<(usize, usize)>> {
         let mut end_categories: Vec<(usize, usize)> = vec![];
-        let mut workbook = self.get_workbook(0);
+        let mut workbook = self.get_workbook().ok()?;
 
-        match workbook.worksheet_range(&self.get_worksheet(0)) {
+        match workbook.worksheet_range(&self.worksheet) {
             Some(Ok(range)) => {
                 for (category_row, category_col) in categories_coord.into_iter() {
                     let mut col = category_col + 1;
@@ -379,14 +405,14 @@ impl PdfFile {
             Some(Err(e)) => println!("{e:?}"),
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
-        end_categories
+        Some(end_categories)
     }
     /// Return the values at a given coordinates
     pub fn get_values_at(&self, begin_categories: &Vec<(usize, usize)>) -> Option<Vec<String>> {
-        let mut workbook = self.get_workbook(0);
+        let mut workbook = self.get_workbook().ok()?;
         let mut output: Vec<String> = vec![];
 
-        match workbook.worksheet_range(self.get_worksheet(0)) {
+        match workbook.worksheet_range(&self.worksheet) {
             Some(Ok(range)) => {
                 for category in begin_categories {
                     let (a, b) = category;
@@ -405,13 +431,13 @@ impl PdfFile {
         start_categ_coord: &Vec<(usize, usize)>,
         end_categ_coord: &Vec<(usize, usize)>,
         id_line: Vec<usize>,
-    ) -> Vec<Vec<String>> {
+    ) -> Option<Vec<Vec<String>>> {
         assert_eq!(start_categ_coord.len(), end_categ_coord.len());
 
-        let mut workbook = self.get_workbook(0);
+        let mut workbook = self.get_workbook().ok()?;
         let mut output: Vec<Vec<String>> = vec![];
 
-        match workbook.worksheet_range(self.get_worksheet(0)) {
+        match workbook.worksheet_range(&self.worksheet) {
             Some(Ok(range)) => {
                 let it = start_categ_coord.iter().zip(end_categ_coord.iter());
                 for (_, (start_coord, end_coord)) in it.enumerate() {
@@ -420,8 +446,7 @@ impl PdfFile {
                         for line in id_line.iter() {
                             parameters.push(
                                 range
-                                    .get_value(((start_coord.0 + line) as u32, col as u32))
-                                    .unwrap()
+                                    .get_value(((start_coord.0 + line) as u32, col as u32))?
                                     .to_string(),
                             )
                         }
@@ -432,7 +457,7 @@ impl PdfFile {
             Some(Err(e)) => println!("{e:?}"),
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
-        output
+        Some(output)
     }
 
     pub fn get_values_from_parameters(
@@ -440,18 +465,18 @@ impl PdfFile {
         product_coordinates: (usize, usize),
         start_categ_coord: &Vec<(usize, usize)>,
         end_categ_coord: &Vec<(usize, usize)>,
-    ) -> Vec<Vec<String>> {
-        let mut workbook = self.get_workbook(0);
+    ) -> Option<Vec<Vec<String>>> {
+        let mut workbook = self.get_workbook().ok()?;
         let mut out: Vec<Vec<String>> = Vec::new();
-        match workbook.worksheet_range(self.get_worksheet(0)) {
+        match workbook.worksheet_range(&self.worksheet) {
             Some(Ok(range)) => {
                 for param in 0..start_categ_coord.len() {
                     let mut parameters: Vec<String> = vec![];
-                    for y in start_categ_coord.iter().nth(param).unwrap().1
-                        ..end_categ_coord.iter().nth(param).unwrap().1 + 1
+                    for y in start_categ_coord.iter().nth(param)?.1
+                        ..end_categ_coord.iter().nth(param)?.1 + 1
                     {
                         let x = product_coordinates.0;
-                        parameters.push(range.get_value((x as u32, y as u32)).unwrap().to_string());
+                        parameters.push(range.get_value((x as u32, y as u32))?.to_string());
                     }
                     out.push(parameters);
                 }
@@ -459,8 +484,9 @@ impl PdfFile {
             Some(Err(e)) => println!("{e:?}"),
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
-        out
+        Some(out)
     }
+
     /// create and render pdf
     pub fn create_and_render(&self, page: Document) -> Result<(), Box<dyn std::error::Error>> {
         let render = print(&page)?;

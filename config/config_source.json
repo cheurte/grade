@@ -9,41 +9,11 @@
     "pdfFile":[
         {
             "pdfName":"pdf1",
-            "sources": [
-                "sources/BIOTEC.xlsm"
-            ],
-            "sheetsName": [
-                "Master - Rigid Overview "
-            ],
+            "output": "output/",
+            "source": "sources/BIOTEC.xlsm",
+            "worksheet": "Master - Rigid Overview ",
             "products":[
-                "BIOPLAST 800",
-                "BIOPLAST GS 2189",
-                "BIOPLAST 105"
-            ],
-            "categories":[
-                "Properties",
-                "Mechanical Properties",
-                "Compostable Certification"
-            ],
-            "parameters":[
-                "Parameters",
-                "Certification",
-                "Unit",
-                "Descriptions",
-                "Standart"
-            ]
-        },
-        {
-            "pdfName":"pdf2",
-            "sources": [
-                "sources/BIOTEC.xlsm"
-            ],
-            "sheetsName": [
-                "Master - Rigid Overview "
-            ],
-            "products":[
-                "BIOPLAST 800"
-            ],
+                            ],
             "categories":[
                 "Properties",
                 "Mechanical Properties",
