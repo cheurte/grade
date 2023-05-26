@@ -45,6 +45,10 @@ pub enum TabParameters {
     Product,
 }
 
+pub fn parse_args(args: &[String]) -> &str {
+    &args[1]
+}
+
 /// Handle the tex creation.
 /// Seperate function to handle the windows server lately -> ToDo
 ///
