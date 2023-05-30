@@ -55,6 +55,7 @@ pub struct Config {
 
 impl Config {
     pub fn new(args: &[String]) -> Result<Config, &'static str> {
+        println!("{:?}", args);
         if args.len() < 2 {
             return Err("Not enough argument");
         }
@@ -110,6 +111,14 @@ impl ConfigXlsx {
             margin_size: 0.84,
             alignment_tabular: String::from("left"),
         }
+    }
+
+    pub fn is_empty(self) -> bool {
+        self.alignment_tabular.is_empty()
+            && self.color_tab_line.is_empty()
+            && self.color_tab_title.is_empty()
+            && self.color_text.is_empty()
+            && self.pdf_file.is_empty()
     }
 
     /// from a path
@@ -339,6 +348,15 @@ impl PdfFile {
             parameters: Vec::new(),
         }
     }
+    pub fn is_empty(self) -> bool {
+        self.pdf_name.is_empty()
+            && self.output.is_empty()
+            && self.source.is_empty()
+            && self.worksheet.is_empty()
+            && self.products.is_empty()
+            && self.categories.is_empty()
+            && self.parameters.is_empty()
+    }
 
     // Function to return a workbook
     pub fn get_workbook(&self) -> Result<Xlsx<BufReader<File>>, Box<dyn Error>> {
@@ -348,7 +366,6 @@ impl PdfFile {
 
     pub fn search_cells_coordinates(&self, field: TabParameters) -> Option<Vec<(usize, usize)>> {
         let mut workbook = self.get_workbook().ok()?;
-
         let mut output: Vec<(usize, usize)> = Vec::new();
         let field = match field {
             TabParameters::Product => &self.products,
