@@ -7,7 +7,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut config_file: Config = Config::default();
     match Config::new(&args) {
         Ok(v) => {
-            println!("ok");
             config_file = v;
         }
         Err(e) => println!("WARNING {}, the default is used instead", e),
@@ -18,6 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // configs.pdf_file.push(PdfFile::new());
     for pdf_file in configs.pdf_file.iter() {
         let mut page = Document::new(latex::DocumentClass::Article);
+        // Handle the fact that the config file might be empty
         // if pdf_file.clone().is_empty() {
         //     configs.starting_pdf(&mut page);
         //     configs.first_page(&mut page, &Vec::new());

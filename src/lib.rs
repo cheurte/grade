@@ -5,6 +5,8 @@ use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
 
+use strum_macros::EnumIter;
+
 use calamine::{open_workbook, DataType, Reader, Xlsx};
 
 use serde::Deserialize;
@@ -34,14 +36,14 @@ pub struct PdfFile {
     parameters: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum AlignTab {
     C, // Center align
     R, // Right align
     L, // left align
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, EnumIter)]
 pub enum TabParameters {
     Parameter,
     Category,
@@ -113,14 +115,6 @@ impl ConfigXlsx {
         }
     }
 
-    pub fn is_empty(self) -> bool {
-        self.alignment_tabular.is_empty()
-            && self.color_tab_line.is_empty()
-            && self.color_tab_title.is_empty()
-            && self.color_text.is_empty()
-            && self.pdf_file.is_empty()
-    }
-
     /// from a path
     pub fn from(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let path = Path::new(path);
@@ -129,6 +123,14 @@ impl ConfigXlsx {
         Ok(config)
     }
 
+    /// Check if file is empty
+    pub fn is_empty(self) -> bool {
+        self.alignment_tabular.is_empty()
+            && self.color_tab_line.is_empty()
+            && self.color_tab_title.is_empty()
+            && self.color_text.is_empty()
+            && self.pdf_file.is_empty()
+    }
     /// To define all the preamble element of the page.
     /// All the key element are in the config file
     ///
@@ -327,11 +329,21 @@ impl Default for PdfFile {
         Self {
             pdf_name: String::from("Default File"),
             output: String::from("output/"),
-            source: Config::default().get_config_path().to_string(),
+            source: String::from("sources/BIOTEC.xlsx"),
             worksheet: String::from("Master - Rigid Overview "),
-            products: Vec::new(),
-            categories: Vec::new(),
-            parameters: Vec::new(),
+            products: vec!["BIOPLAST 800".to_string()],
+            categories: vec![
+                String::from("Properties"),
+                String::from("Mechanical Properties"),
+                String::from("Compostable Certification"),
+            ],
+            parameters: vec![
+                String::from("Parameters"),
+                String::from("Certification"),
+                String::from("Unit"),
+                String::from("Descriptions"),
+                String::from("Standart"),
+            ],
         }
     }
 }
