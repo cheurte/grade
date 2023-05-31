@@ -70,7 +70,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // let mut page = Document::new(latex::DocumentClass::Article);
         configs.starting_pdf(&mut page);
         configs.first_page(&mut page, &product_names);
-
         // Page creation
         // We iterate over the PRODUCT
         let mut product_value = product_values.iter();
