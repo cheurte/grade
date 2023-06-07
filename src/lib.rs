@@ -134,7 +134,7 @@ impl ConfigXlsx {
     /// To define all the preamble element of the page.
     /// All the key element are in the config file
     ///
-    pub fn starting_pdf(&self, page: &mut Document) {
+    pub fn preamble(&self, page: &mut Document) {
         page.preamble.use_package("tabularx");
         page.preamble.use_package("xcolor");
         page.preamble.use_package("colortbl");
@@ -224,29 +224,34 @@ impl ConfigXlsx {
 
     /// Define the first page of the document
     /// We find on it only the names of the products
-    pub fn first_page(&self, page: &mut Document, product_names: &Vec<String>) {
+    pub fn first_page(&self, page: &mut Document, product_names: &Option<Vec<String>>) {
         let image = String::from(
             "\\includegraphics[scale=0.20]{biotec}\n\\hfill\\tiny Last Updated \\today",
         );
         let image =
             tab_creation::define_environment("flushleft".to_string(), "".to_string(), image);
-        page.push(Element::UserDefined(image));
 
         let mut table_of_content =
             String::from("\\hspace{1cm}\\\\\n\\textbf{Contents}\\\\\n\\hspace{5in}\\\\\n");
         let mut item_product: Vec<String> = Vec::new();
-        for (i, product_name) in product_names.iter().enumerate() {
-            item_product.push(format!("\\setItemnumber{{{}}}\n", i + 2));
-            item_product.push(format!("\\item {}\\\\\n", product_name))
+        match product_names {
+            Some(products) => {
+                for (i, product_name) in products.iter().enumerate() {
+                    item_product.push(format!("\\setItemnumber{{{}}}\n", i + 2));
+                    item_product.push(format!("\\item {}\\\\\n", product_name))
+                }
+            }
+            None => item_product.push("\\item No product Given\\\\\n".to_string()),
         }
+
         let item_product = tab_creation::define_environment(
             "enumerate".to_string(),
             "".to_string(),
             item_product.join(""),
         );
-
         table_of_content.push_str(item_product.as_str());
 
+        page.push(Element::UserDefined(image));
         page.push(Element::UserDefined(tab_creation::define_environment(
             "flushleft".to_string(),
             "".to_string(),
@@ -265,15 +270,15 @@ impl ConfigXlsx {
         &self,
         page: &mut Document,
         product_name: String,
-        titles: &Vec<String>,
-        parameters: Vec<String>,
-        general_contents: &Vec<Vec<String>>,
+        titles: &Option<Vec<String>>,
+        parameters: &Option<Vec<String>>,
+        general_contents: &Option<Vec<Vec<String>>>,
         product_contents: &Vec<Vec<String>>,
         nb_param: usize,
     ) -> Option<()> {
         // we iterate over tabulars
-        let mut general_content = general_contents.iter();
-        let mut title = titles.iter();
+        let mut general_content = general_contents.as_ref()?.iter();
+        let mut title = titles.as_ref()?.iter();
         let mut product_content = product_contents.iter();
         let image = String::from(
             "\\includegraphics[scale=0.20]{biotec}\n\\hfill\\tiny Last Updated \\today",
@@ -298,8 +303,8 @@ impl ConfigXlsx {
             _ => AlignTab::L,
         };
 
-        for _ in 0..titles.len() {
-            let mut params = parameters.clone();
+        for _ in 0..titles.as_ref()?.len() {
+            let mut params = parameters.as_ref()?.clone();
             let title = title.next();
             let general_content = general_content.next();
             let product_content = product_content.next();
@@ -361,13 +366,7 @@ impl PdfFile {
         }
     }
     pub fn is_empty(self) -> bool {
-        self.pdf_name.is_empty()
-            && self.output.is_empty()
-            && self.source.is_empty()
-            && self.worksheet.is_empty()
-            && self.products.is_empty()
-            && self.categories.is_empty()
-            && self.parameters.is_empty()
+        self.products.is_empty()
     }
 
     // Function to return a workbook
@@ -403,6 +402,9 @@ impl PdfFile {
             None => println!("Sheets name unknown. Maybe check the name in the config file"),
         }
         assert_eq!(output.len(), field.len());
+        if output.is_empty() {
+            return None;
+        }
         Some(output)
     }
 
@@ -410,14 +412,17 @@ impl PdfFile {
     /// Take the beginning corrdinates of categories, and return the end coordinates
     pub fn get_parameters_range(
         &self,
-        categories_coord: &Vec<(usize, usize)>,
+        categories_coord: &Option<Vec<(usize, usize)>>,
     ) -> Option<Vec<(usize, usize)>> {
+        if categories_coord.is_none() {
+            return None;
+        }
         let mut end_categories: Vec<(usize, usize)> = vec![];
         let mut workbook = self.get_workbook().ok()?;
 
         match workbook.worksheet_range(&self.worksheet) {
             Some(Ok(range)) => {
-                for (category_row, category_col) in categories_coord.into_iter() {
+                for (category_row, category_col) in categories_coord.as_ref()?.into_iter() {
                     let mut col = category_col + 1;
                     loop {
                         if range.get_value((*category_row as u32, col as u32))
@@ -437,15 +442,20 @@ impl PdfFile {
         Some(end_categories)
     }
     /// Return the values at a given coordinates
-    pub fn get_values_at(&self, begin_categories: &Vec<(usize, usize)>) -> Option<Vec<String>> {
+    pub fn get_values_at(
+        &self,
+        begin_categories: &Option<Vec<(usize, usize)>>,
+    ) -> Option<Vec<String>> {
+        if begin_categories.is_none() {
+            return None;
+        }
         let mut workbook = self.get_workbook().ok()?;
         let mut output: Vec<String> = vec![];
 
         match workbook.worksheet_range(&self.worksheet) {
             Some(Ok(range)) => {
-                for category in begin_categories {
+                for category in begin_categories.as_ref()? {
                     let (a, b) = category;
-                    // println!("{:?}", range.get_value((*a as u32, *b as u32)));
                     output.push(range.get_value((*a as u32, *b as u32))?.to_string())
                 }
             }
@@ -457,18 +467,28 @@ impl PdfFile {
 
     pub fn get_parameters_by_id(
         &self,
-        start_categ_coord: &Vec<(usize, usize)>,
-        end_categ_coord: &Vec<(usize, usize)>,
-        id_line: Vec<usize>,
+        start_categ_coord: &Option<Vec<(usize, usize)>>,
+        end_categ_coord: &Option<Vec<(usize, usize)>>,
+        id_line: &Option<Vec<(usize, usize)>>,
     ) -> Option<Vec<Vec<String>>> {
-        assert_eq!(start_categ_coord.len(), end_categ_coord.len());
+        if start_categ_coord.is_none() || end_categ_coord.is_none() || id_line.is_none() {
+            return None;
+        }
+        assert_eq!(
+            start_categ_coord.as_ref()?.len(),
+            end_categ_coord.as_ref()?.len()
+        );
 
+        let id_line: Vec<usize> = id_line.as_ref()?.iter().map(|v| v.0).collect();
         let mut workbook = self.get_workbook().ok()?;
         let mut output: Vec<Vec<String>> = vec![];
-
+        //
         match workbook.worksheet_range(&self.worksheet) {
             Some(Ok(range)) => {
-                let it = start_categ_coord.iter().zip(end_categ_coord.iter());
+                let it = start_categ_coord
+                    .as_ref()?
+                    .iter()
+                    .zip(end_categ_coord.as_ref()?.iter());
                 for (_, (start_coord, end_coord)) in it.enumerate() {
                     let mut parameters: Vec<String> = vec![];
                     for col in start_coord.1..end_coord.1 + 1 {
@@ -492,17 +512,20 @@ impl PdfFile {
     pub fn get_values_from_parameters(
         &self,
         product_coordinates: (usize, usize),
-        start_categ_coord: &Vec<(usize, usize)>,
-        end_categ_coord: &Vec<(usize, usize)>,
+        start_categ_coord: &Option<Vec<(usize, usize)>>,
+        end_categ_coord: &Option<Vec<(usize, usize)>>,
     ) -> Option<Vec<Vec<String>>> {
+        if start_categ_coord.is_none() || end_categ_coord.is_none() {
+            return None;
+        }
         let mut workbook = self.get_workbook().ok()?;
         let mut out: Vec<Vec<String>> = Vec::new();
         match workbook.worksheet_range(&self.worksheet) {
             Some(Ok(range)) => {
-                for param in 0..start_categ_coord.len() {
+                for param in 0..start_categ_coord.as_ref()?.len() {
                     let mut parameters: Vec<String> = vec![];
-                    for y in start_categ_coord.iter().nth(param)?.1
-                        ..end_categ_coord.iter().nth(param)?.1 + 1
+                    for y in start_categ_coord.as_ref()?.iter().nth(param)?.1
+                        ..end_categ_coord.as_ref()?.iter().nth(param)?.1 + 1
                     {
                         let x = product_coordinates.0;
                         parameters.push(range.get_value((x as u32, y as u32))?.to_string());

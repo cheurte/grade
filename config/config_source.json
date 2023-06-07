@@ -13,20 +13,11 @@
             "source": "sources/BIOTEC.xlsm",
             "worksheet": "Master - Rigid Overview ",
             "products":[
-                "BIOPLAST 800"
             ],
             "categories":[
-                "Properties",
-                "Mechanical Properties",
-                "Compostable Certification"
-            ],
+                ],
             "parameters":[
-                "Parameters",
-                "Certification",
-                "Unit",
-                "Descriptions",
-                "Standart"
-            ]
+                ]
         }
     ]
 }
