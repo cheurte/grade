@@ -20,8 +20,14 @@ fn test_search_cells_coordinates() {
 }
 
 #[test]
-fn test_search_values() {
-    // let config_xslx = ConfigXlsx::
+fn test_search_cells_coordinates_empty() {
+    let config_xlsx = ConfigXlsx::new();
+    for pdf_file in config_xlsx.pdf_file.iter() {
+        for (_, param) in TabParameters::iter().enumerate() {
+            let res = pdf_file.search_cells_coordinates(param);
+            assert_eq!(res, None);
+        }
+    }
 }
 
 // #[test]

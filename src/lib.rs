@@ -3,7 +3,7 @@ use std::default::Default;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use strum_macros::EnumIter;
 
@@ -20,6 +20,7 @@ pub struct ConfigXlsx {
     pub color_text: Vec<i32>,
     pub color_tab_title: Vec<i32>,
     pub color_tab_line: Vec<i32>,
+    assets: String,
     pub margin_size: f32,
     pub alignment_tabular: String,
 }
@@ -28,7 +29,7 @@ pub struct ConfigXlsx {
 #[serde(rename_all = "camelCase")]
 pub struct PdfFile {
     pdf_name: String,
-    pub output: String,
+    output: String,
     source: String,
     worksheet: String,
     products: Vec<String>,
@@ -83,8 +84,9 @@ impl Default for Config {
 /// Handle the tex creation.
 /// Seperate function to handle the windows server lately -> ToDo
 ///
-pub fn render_tex_file(rendered: String, pdf_name: String) -> std::io::Result<()> {
-    let mut f = File::create(&format!("output/{}.tex", pdf_name))?;
+pub fn render_tex_file(rendered: String, pdf_name: String, output: String) -> std::io::Result<()> {
+    let mut f = File::create(&format!("{}/{}.tex", output, pdf_name))?;
+
     write!(f, "{}", rendered)?;
     Ok(())
 }
@@ -96,6 +98,7 @@ impl Default for ConfigXlsx {
             color_text: Vec::from([13, 64, 47]),
             color_tab_title: Vec::from([237, 233, 230]),
             color_tab_line: Vec::from([215, 212, 210]),
+            assets: String::from("resources/"),
             margin_size: 0.80,
             alignment_tabular: String::from("left"),
         }
@@ -110,6 +113,7 @@ impl ConfigXlsx {
             color_text: Vec::new(),
             color_tab_title: Vec::new(),
             color_tab_line: Vec::new(),
+            assets: String::new(),
             margin_size: 0.84,
             alignment_tabular: String::from("left"),
         }
@@ -213,9 +217,10 @@ impl ConfigXlsx {
                 "\\renewcommand{\\arraystretch}{1.25}",
             )));
         page.preamble
-            .push(PreambleElement::UserDefined(String::from(
-                "\\graphicspath{{./resources/}}",
-            )));
+            .push(PreambleElement::UserDefined(String::from(format!(
+                "\\graphicspath{{{{../{}/}}}}",
+                self.assets
+            ))));
         page.preamble
             .push(PreambleElement::UserDefined(String::from(
                 "\\newcommand\\setItemnumber[1]{\\setcounter{enumi}{\\numexpr#1-1\\relax}}",
@@ -542,15 +547,28 @@ impl PdfFile {
     /// create and render pdf
     pub fn create_and_render(&self, page: Document) -> Result<(), Box<dyn std::error::Error>> {
         let render = print(&page)?;
-        match render_tex_file(render, self.pdf_name.clone()) {
-            Ok(_) => println!("rendered completed"),
-            Err(e) => println!("{e:?}"),
+
+        // let out_path = String::from(&format!("{}/{}.tex", self.output, self.pdf_name));
+        let out_path = PathBuf::from(&self.output); //;
+                                                    // let out_p = PathBuf::from(out_path.clone());
+                                                    // println!("PATH : {out_p:?}");
+        if !out_path.exists() {
+            std::fs::create_dir(&out_path)?;
         }
-        let out_path = String::from(&format!("output/{}.tex", self.pdf_name));
+        let mut tex_f = PathBuf::from(&self.pdf_name);
+        tex_f.set_extension("tex");
+        // println!("{tex_f:?}");
+        let mut f: File = File::create(&out_path.join(tex_f))?;
+
+        write!(f, "{}", render)?;
+
         std::process::Command::new("latexmk")
             .arg(out_path)
             .arg("-pdf")
-            .arg("--output-directory=output/")
+            .arg(format!(
+                "--output-directory={}/",
+                self.output.replace("/", "")
+            ))
             .status()?;
         Ok(())
     }

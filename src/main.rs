@@ -27,7 +27,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let titles = pdf_file.get_values_at(&begin_categories_coord);
         let parameters = pdf_file.get_values_at(&parameters_coord);
         let product_names = pdf_file.get_values_at(&products_coord);
-        // println!("{product_names:?} {parameters:?}, {titles:?}");
 
         let general_content = pdf_file.get_parameters_by_id(
             &begin_categories_coord,
@@ -40,21 +39,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // finding the actual content
         if let Some(product_coord) = products_coord {
             for (_, prod_coord) in product_coord.iter().enumerate() {
-                let cont_buff = pdf_file
-                    .get_values_from_parameters(
-                        *prod_coord,
-                        &begin_categories_coord,
-                        &end_categories_coord,
-                    )
-                    .ok_or("Error at getting values for this product")?;
-                product_values.push(cont_buff.clone());
+                let cont_buff = pdf_file.get_values_from_parameters(
+                    *prod_coord,
+                    &begin_categories_coord,
+                    &end_categories_coord,
+                );
+                product_values.push(cont_buff.ok_or("Content Not Found")?.clone());
             }
         }
 
         //
         let mut page = Document::new(latex::DocumentClass::Article);
         configs.preamble(&mut page);
-        println!("{product_names:?}");
         configs.first_page(&mut page, &product_names);
         //     // Page creation
         //     // We iterate over the PRODUCT
